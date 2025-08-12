@@ -828,5 +828,5 @@ export const produtosPorCodigo: { [key: string]: { produto: string; tipo: string
 "292594": { produto: "CCF-FILE SASSAMI 6X2KG MI", tipo: "" },
 "292563": { produto: "CCF-FILE PEITO BUTTERFLY 6X2KG MI", tipo: "" },
 "313505": { produto: "SHAWARMA BOLSAO 15KG LG", tipo: "" },
-"119714" : { produto: "CCFEX-COXINHA ASA INTERF 15KG MEX", tipo: "" }
+/* "119714" : { produto: "CCFEX-COXINHA ASA INTERF 15KG MEX", tipo: "" }, */
 };
