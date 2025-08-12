@@ -17,6 +17,7 @@ import {
   Users,
   LogOut,
   X,
+  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/context/AuthContext";
@@ -26,6 +27,7 @@ const navItems = [
   { href: "/registrar", icon: Thermometer, label: "Registrar" },
   { href: "/visualizar", icon: ClipboardList, label: "Visualizar" },
   { href: "/graficos", icon: BarChart3, label: "Gráficos" },
+  { href: "/desempenho", icon: TrendingUp, label: "Desempenho", admin: true },
   { href: "/usuarios", icon: Users, label: "Usuários", admin: true },
   { href: "/configuracoes", icon: Settings, label: "Configurações" },
 ];
@@ -123,3 +125,5 @@ export default function Sidebar({ isSidebarOpen, setSidebarOpen }: SidebarProps)
     </>
   );
 }
+
+    

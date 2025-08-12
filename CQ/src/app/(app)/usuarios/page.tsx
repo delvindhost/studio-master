@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
   Dialog,
   DialogContent,
@@ -37,7 +36,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from '@/components/ui/checkbox';
-import { Loader2, UserPlus, Users, ShieldCheck, KeyRound, User, Trash2, MoreVertical, Edit, Mail, Clock } from 'lucide-react';
+import { Loader2, UserPlus, Users, ShieldCheck, KeyRound, User, Trash2, MoreVertical, Edit, Mail } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -49,7 +48,6 @@ type UserProfile = {
   matricula: string;
   role: 'admin' | 'user';
   permissions: string[];
-  turno: '1' | '2' | '3';
 };
 
 const navItems = [
@@ -57,7 +55,6 @@ const navItems = [
   { href: "/registrar", label: "Registrar" },
   { href: "/visualizar", label: "Visualizar" },
   { href: "/graficos", label: "Gráficos" },
-  { href: "/desempenho", label: "Desempenho", admin: true },
 ];
 
 const specialPermissions = [
@@ -84,7 +81,6 @@ export default function UsuariosPage() {
   const [email, setEmail] = useState('');
   const [matricula, setMatricula] = useState('');
   const [senha, setSenha] = useState('');
-  const [turno, setTurno] = useState<'1' | '2' | '3' | ''>('');
   const [permissions, setPermissions] = useState<string[]>([]);
 
   const fetchUsers = useCallback(async () => {
@@ -155,7 +151,6 @@ export default function UsuariosPage() {
     setEmail('');
     setMatricula('');
     setSenha('');
-    setTurno('');
     setPermissions([]);
     setEditingUser(null);
     setIsSubmitting(false);
@@ -167,7 +162,6 @@ export default function UsuariosPage() {
     setNome(user.nome);
     setMatricula(user.matricula);
     setEmail(user.email);
-    setTurno(user.turno || '');
     setPermissions(user.permissions || []);
     setSenha(''); // Senha não é preenchida por segurança
     setIsDialogOpen(true);
@@ -189,8 +183,8 @@ export default function UsuariosPage() {
   }
 
   const handleAddUser = async () => {
-    if (!nome || !matricula || !senha || !email || !turno) {
-      showAlert('Por favor, preencha nome, matrícula, senha e turno.', 'error');
+    if (!nome || !matricula || !senha || !email) {
+      showAlert('Por favor, preencha nome, matrícula e senha.', 'error');
       return;
     }
     setIsSubmitting(true);
@@ -206,7 +200,6 @@ export default function UsuariosPage() {
         nome,
         matricula,
         email,
-        turno,
         role: 'user',
         permissions,
       });
@@ -229,8 +222,8 @@ export default function UsuariosPage() {
   };
 
   const handleUpdateUser = async () => {
-     if (!editingUser || !nome || !matricula || !turno) {
-      showAlert('Por favor, preencha nome, matrícula e turno.', 'error');
+     if (!editingUser || !nome || !matricula) {
+      showAlert('Por favor, preencha nome e matrícula.', 'error');
       return;
     }
      if (senha && senha.length < 6) {
@@ -247,7 +240,6 @@ export default function UsuariosPage() {
         
         await updateDoc(userDocRef, {
             nome,
-            turno,
             permissions,
         });
 
@@ -327,24 +319,9 @@ export default function UsuariosPage() {
                   <Label htmlFor="nome">Nome Completo</Label>
                   <Input id="nome" value={nome} onChange={(e) => setNome(e.target.value)} placeholder="Nome do colaborador" disabled={isSubmitting} required/>
                 </div>
-                 <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="matricula">Matrícula</Label>
-                      <Input id="matricula" value={matricula} onChange={(e) => handleMatriculaChange(e.target.value)} placeholder="0000" disabled={isSubmitting || !!editingUser} required/>
-                    </div>
-                     <div className="space-y-2">
-                        <Label htmlFor="turno">Turno</Label>
-                        <Select value={turno} onValueChange={(v) => setTurno(v as '1' | '2' | '3')} required>
-                            <SelectTrigger id="turno" disabled={isSubmitting}>
-                                <SelectValue placeholder="Selecione" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="1">1º Turno</SelectItem>
-                                <SelectItem value="2">2º Turno</SelectItem>
-                                <SelectItem value="3">3º Turno</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
+                <div className="space-y-2">
+                  <Label htmlFor="matricula">Matrícula</Label>
+                  <Input id="matricula" value={matricula} onChange={(e) => handleMatriculaChange(e.target.value)} placeholder="Matrícula de identificação" disabled={isSubmitting || !!editingUser} required/>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">E-mail de Login (automático)</Label>
@@ -429,7 +406,6 @@ export default function UsuariosPage() {
                         <p className="font-semibold flex items-center gap-2"><User className='h-4 w-4 text-primary'/> {user.nome}</p>
                          <p className="text-sm text-muted-foreground flex items-center gap-2"><Mail className='h-4 w-4'/> E-mail: {user.email}</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-2"><KeyRound className='h-4 w-4'/> Matrícula: {user.matricula}</p>
-                        <p className="text-sm text-muted-foreground flex items-center gap-2"><Clock className='h-4 w-4'/> Turno: {user.turno}º</p>
                         <p className="text-sm text-muted-foreground flex items-center gap-2"><ShieldCheck className='h-4 w-4'/> Permissões: {(user.permissions || []).map(p => getPermissionLabel(p)).join(', ')}</p>
                     </div>
 
@@ -483,5 +459,3 @@ export default function UsuariosPage() {
     </div>
   );
 }
-
-    
