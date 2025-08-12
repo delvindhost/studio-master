@@ -1,0 +1,25 @@
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regra para a coleção 'users'
+    match /users/{userId} {
+      // Permite que o usuário leia e atualize seu próprio perfil.
+      allow read, update: if request.auth != null && request.auth.uid == userId;
+      // Permite que administradores leiam qualquer perfil de usuário.
+      allow read: if request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      // Permite a criação de um novo perfil de usuário durante o cadastro.
+      allow create: if request.auth != null;
+    }
+
+    // Regra para a coleção 'registros'
+    match /registros/{registroId} {
+      // Permite que qualquer usuário autenticado crie um registro.
+      allow create: if request.auth != null;
+      // Permite que qualquer usuário autenticado leia os registros.
+      allow read: if request.auth != null;
+      // Permite a exclusão apenas para administradores ou usuários com a permissão 'delete_records'.
+      allow delete: if request.auth != null && (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' || 'delete_records' in get(/databases/$(database)/documents/users/$(request.auth.uid)).data.permissions);
+    }
+  }
+}

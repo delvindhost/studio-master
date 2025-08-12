@@ -1,0 +1,2732 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CONTROLE DE QUALIDADE</title>
+    
+    <!-- Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- jsPDF e AutoTable -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.28/jspdf.plugin.autotable.min.js"></script>
+    
+    <!-- Excel export -->
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --primary: #6a0dad;
+            --primary-light: #9c27b0;
+            --background: #f5f5f5;
+            --text: #333;
+            --white: #ffffff;
+            --success: #5c72f1;
+            --warning: #FFC107;
+            --danger: #ffdf4f;
+            --info: #09a12a;
+        }
+        
+        * {
+            margin: 0; padding: 0; box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            background-color: var(--background);
+            color: var(--text);
+            min-height: 100vh;
+        }
+        
+        .sidebar {
+            width: 220px;
+            background-color: var(--primary);
+            color: var(--white);
+            min-height: 100vh;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            text-align: center;
+        }
+        
+        .sidebar h2 {
+            color: var(--white);
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 1.5rem;
+        }
+        
+        .sidebar ul {
+            list-style: none;
+        }
+        
+        .sidebar ul li {
+            padding: 12px;
+            margin-bottom: 10px;
+            background-color: var(--primary-light);
+            border-radius: 10px;
+            cursor: pointer;
+            text-align: center;
+            transition: all 0.3s;
+        }
+        
+        .sidebar ul li:hover,
+        .sidebar ul li.active {
+            background-color: var(--white);
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .main {
+            flex: 1;
+            padding: 20px;
+            overflow-x: auto;
+        }
+        
+        .tela {
+            display: none;
+        }
+        
+        .tela.ativa {
+            display: block;
+        }
+        
+        h1 {
+            margin-bottom: 20px;
+            color: var(--primary);
+            border-bottom: 2px solid var(--primary-light);
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            max-width: 800px;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .form-row .form-group {
+            flex: 1;
+        }
+        
+        .form label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .form input,
+        .form select {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        .form button {
+            padding: 10px 20px;
+            border: none;
+            background-color: var(--primary);
+            color: var(--white);
+            border-radius: 10px;
+            cursor: pointer;
+            margin-right: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        
+        .form button:hover {
+            background-color: var(--primary-light);
+            transform: translateY(-2px);
+        }
+        
+        .btn-success {
+            background-color: var(--success);
+        }
+        
+        .btn-warning {
+            background-color: var(--warning);
+            color: var(--text);
+        }
+        
+        .btn-danger {
+            background-color: var(--danger);
+        }
+        
+        .btn-info {
+            background-color: var(--info);
+        }
+        
+        .registros {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .card {
+            background: var(--white);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-top: 5px solid var(--primary);
+            transition: transform 0.3s, box-shadow 0.3s;
+            position: relative;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        
+        .card h3 {
+            color: var(--primary);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card h3 i {
+            margin-right: 10px;
+            color: var(--primary-light);
+        }
+        
+        .card p {
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .card p i {
+            margin-right: 8px;
+            width: 20px;
+            color: var(--primary-light);
+        }
+        
+        .card small {
+            display: block;
+            margin-top: 10px;
+            color: #666;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+      .chart-container {
+    background: var(--white);
+    padding: 0px 0px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    overflow-x: auto;
+    overflow-y: hidden;
+    height: auto;         /* garante que o card cresça conforme o conteúdo */
+    min-height: 400px;    /* ou ajuste conforme necessário */
+}
+
+
+#graficoProdutos {
+    height: 400px !important;
+    width: 100% !important;      /* ocupa toda a largura do container */
+    max-width: unset !important; /* remove o limite máximo */
+    min-width: 700px;
+    display: block;
+    margin: 0 auto;
+}
+
+
+@media (min-width: 1024px) {
+    .chart-container {
+        padding-left: 40px;
+        padding-right: 90px;
+    }
+}
+
+        
+        .filtros {
+            background: var(--white);
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .filtros .form-group {
+            margin-bottom: 0;
+            min-width: 200px;
+        }
+        
+        .alert {
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            color: white;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .alert-success {
+            background-color: var(--success);
+        }
+        
+        .alert-danger {
+            background-color: var(--danger);
+        }
+        
+        .login-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        
+        .login-box {
+            background: var(--white);
+            padding: 30px;
+            border-radius: 15px;
+            width: 90%;
+            max-width: 400px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        .login-box h2 {
+            color: var(--primary);
+            margin-bottom: 20px;
+        }
+        
+        .login-box input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 1rem;
+        }
+        
+        .login-box button {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background-color 0.3s;
+        }
+        
+        .login-box button:hover {
+            background-color: var(--primary-light);
+        }
+        
+        .config-section {
+            background: var(--white);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .config-section h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .config-option {
+            margin-bottom: 15px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 10px;
+        }
+        
+        .danger-zone {
+            border-color: #ff4444;
+            background-color: #ffeeee;
+        }
+        
+        .success-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: var(--success);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+            display: none;
+            z-index: 1000;
+            animation: slideIn 0.5s forwards;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-excluir {
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.2rem;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    transition: color 0.3s ease;
+}
+.btn-excluir:hover {
+    color: #c0392b;
+}
+
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            .sidebar {
+                width: 100%;
+                min-height: auto;
+                padding: 15px 10px;
+            }
+            
+            .sidebar ul {
+                display: flex;
+                gap: 10px;
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+            
+            .sidebar ul li {
+                margin-bottom: 0;
+                padding: 10px 15px;
+                flex: 1;
+                min-width: 120px;
+            }
+            
+            .main {
+                padding: 15px 10px;
+            }
+            
+            .form-row {
+                flex-direction: column;
+                gap: 15px;
+            }
+            
+            .filtros {
+                flex-direction: column;
+            }
+            
+            .filtros .form-group {
+                width: 100%;
+            }
+        }
+
+        .alert-flutuante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px 25px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.2);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    animation: slideIn 0.5s forwards, fadeOut 0.5s 2.5s forwards;
+}
+
+@keyframes slideIn {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+    </style>
+</head>
+<body>
+
+
+    <!-- Modal de Login -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-box">
+            <h2>Controle de Qualidade</h2>
+            <input type="password" id="senhaInput" placeholder="Digite a senha">
+            <button onclick="validarSenha()">Entrar</button>
+        </div>
+    </div>
+
+    <!-- Mensagem de sucesso -->
+    <div id="success-message" class="success-message">
+        <i class="fas fa-check-circle"></i> Registro salvo com sucesso!
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <h2>CONTROLE DE QUALIDADE</h2>
+        <ul>
+            <li class="active" onclick="mostrarTela('registro')"><i class="fas fa-thermometer-half"></i> Registrar</li>
+            <li onclick="mostrarTela('visualizar')"><i class="fas fa-list"></i> Visualizar</li>
+            <li onclick="mostrarTela('graficos')"><i class="fas fa-chart-line"></i> Gráficos</li>
+            <li onclick="mostrarTela('configuracoes')"><i class="fas fa-cog"></i> Configurações</li>
+        </ul>
+    </div>
+
+    <!-- Área Principal -->
+    <div class="main">
+        <!-- Alertas -->
+        <div id="alertSuccess" class="alert alert-success">
+            <i class="fas fa-check-circle"></i> Temperatura registrada com sucesso!
+        </div>
+        
+        <div id="alertError" class="alert alert-danger">
+            <i class="fas fa-exclamation-circle"></i> Erro ao registrar temperatura!
+        </div>
+
+       <!-- Página de Registro -->
+<div id="registro" class="tela ativa">
+    <h1><i class="fas fa-thermometer-half"></i> Registro de Temperaturas</h1>
+    <div class="form">
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-clock"></i> Turno*</label>
+                <select id="turno" required>
+                    <option value="">Selecione</option>
+                    <option value="1">1º Turno</option>
+                    <option value="2">2º Turno</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-map-marker-alt"></i> Local*</label>
+                <select id="local" required>
+                    <option value="">Selecione o local</option>
+                    <optgroup label="Giros Freezer">
+                        <option value="Giro Freezer 1">Giro Freezer 1</option>
+                        <option value="Giro Freezer 2">Giro Freezer 2</option>
+                        <option value="Giro Freezer 3">Giro Freezer 3</option>
+                        <option value="Giro Freezer 4">Giro Freezer 4</option>
+                        <option value="Giro Freezer 5">Giro Freezer 5</option>
+                        <option value="Giro Freezer 6">Giro Freezer 6</option>
+                    </optgroup>
+                    <optgroup label="Túneis">
+                        <option value="Túnel 1">Túnel 1</option>
+                        <option value="Túnel 2">Túnel 2</option>
+                        <option value="Túnel 3">Túnel 3</option>
+                        <option value="Túnel 4">Túnel 4</option>
+                        <option value="Túnel 5">Túnel 5</option>
+                        <option value="Túnel 6">Túnel 6</option>
+                        <option value="Túnel 7">Túnel 7</option>
+                    </optgroup>
+                    <optgroup label="Cortes">
+                        <option value="Cortes 1">Cortes 1</option>
+                        <option value="Cortes 2">Cortes 2</option>
+                        <option value="Rependura Cortes 1">Rependura Cortes 1</option>
+                        <option value="Rependura Cortes 2">Rependura Cortes 2</option>
+                    </optgroup>
+                    <optgroup label="Embalagem">
+                        <option value="Embalagem Secundária">Embalagem Secundária</option>
+                    </optgroup>
+                    <optgroup label="Expedição">
+                        <option value="Expedição 1">Expedição 1</option>
+                        <option value="Expedição 2">Expedição 2</option>
+                    </optgroup>
+                    <optgroup label="Paletização">
+                        <option value="Paletização 1">Paletização 1</option>
+                        <option value="Paletização 2">Paletização 2</option>
+                    </optgroup>
+                    <optgroup label="Outros">
+                        <option value="Miudos">Miudos</option>
+                        <option value="Evisceração 1">Evisceração 1</option>
+                        <option value="Evisceração 2">Evisceração 2</option>
+                    </optgroup>
+                    <optgroup label="Câmaras">
+                        <option value="Câmara A">Câmara A</option>
+                        <option value="Câmara C">Câmara C</option>
+                        <option value="Câmara D">Câmara D</option>
+                        <option value="Câmara F">Câmara F</option>
+                    </optgroup>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-barcode"></i> Código do Produto</label>
+                <input type="text" id="codigo" placeholder="Código">
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-box"></i> Produto*</label>
+                <input type="text" id="produto" placeholder="Nome do produto" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-tag"></i> Tipo*</label>
+                <select id="tipo" required>
+                    <option value="">Selecione</option>
+                    <option value="MI">MI</option>
+                    <option value="ME">ME</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-snowflake"></i> Estado*</label>
+                <select id="estado" required>
+                    <option value="">Selecione</option>
+                    <option value="Congelado">Congelado</option>
+                    <option value="Resfriado">Resfriado</option>
+                </select>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <div class="form-group">
+                <label><i class="fas fa-calendar-alt"></i> Data*</label>
+                <input type="date" id="data-manual" required>
+            </div>
+            
+            <div class="form-group">
+                <label><i class="fas fa-clock"></i> Horário*</label>
+                <input type="time" id="horario-manual" required>
+            </div>
+        </div>
+        
+        <h3><i class="fas fa-temperature-low"></i> Temperaturas (°C)*</h3>
+        <div class="form-row">
+            <div class="form-group">
+                <label>Início</label>
+                <input type="text" id="temp-inicio" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Meio</label>
+                <input type="text" id="temp-meio" step="0.1" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Fim</label>
+                <input type="text" id="temp-fim" step="0.1" required>
+            </div>
+        </div>
+        
+        <div class="form-row">
+            <button onclick="registrarTemperatura()" class="btn-success">
+                <i class="fas fa-save"></i> Registrar
+            </button>
+            <button onclick="limparFormulario()" class="btn-warning">
+                <i class="fas fa-broom"></i> Limpar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Página de Visualização -->
+<div id="visualizar" class="tela">
+    <h1><i class="fas fa-list"></i> Registros de Temperatura</h1>
+    
+    <div class="filtros">
+        <div class="form-group">
+            <label><i class="fas fa-calendar-day"></i> Data Inicial</label>
+            <input type="date" id="filtro-data-inicio">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-calendar-day"></i> Data Final</label>
+            <input type="date" id="filtro-data-fim">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-map-marker-alt"></i> Local</label>
+            <select id="filtro-local">
+                <option value="">Todos os locais</option>
+                <optgroup label="Giros Freezer">
+                    <option value="Giro Freezer 1">Giro Freezer 1</option>
+                    <option value="Giro Freezer 2">Giro Freezer 2</option>
+                    <option value="Giro Freezer 3">Giro Freezer 3</option>
+                    <option value="Giro Freezer 4">Giro Freezer 4</option>
+                    <option value="Giro Freezer 5">Giro Freezer 5</option>
+                    <option value="Giro Freezer 6">Giro Freezer 6</option>
+                </optgroup>
+                <optgroup label="Túneis">
+                    <option value="Túnel 1">Túnel 1</option>
+                    <option value="Túnel 2">Túnel 2</option>
+                    <option value="Túnel 3">Túnel 3</option>
+                    <option value="Túnel 4">Túnel 4</option>
+                    <option value="Túnel 5">Túnel 5</option>
+                    <option value="Túnel 6">Túnel 6</option>
+                    <option value="Túnel 7">Túnel 7</option>
+                </optgroup>
+                <optgroup label="Cortes">
+                    <option value="Cortes 1">Cortes 1</option>
+                    <option value="Cortes 2">Cortes 2</option>
+                    <option value="Rependura Cortes 1">Rependura Cortes 1</option>
+                    <option value="Rependura Cortes 2">Rependura Cortes 2</option>
+                </optgroup>
+                <optgroup label="Embalagem">
+                    <option value="Embalagem Secundária">Embalagem Secundária</option>
+                </optgroup>
+                <optgroup label="Expedição">
+                    <option value="Expedição 1">Expedição 1</option>
+                    <option value="Expedição 2">Expedição 2</option>
+                </optgroup>
+                <optgroup label="Paletização">
+                    <option value="Paletização 1">Paletização 1</option>
+                    <option value="Paletização 2">Paletização 2</option>
+                </optgroup>
+                <optgroup label="Outros">
+                    <option value="Miudos">Miudos</option>
+                    <option value="Evisceração 1">Evisceração 1</option>
+                    <option value="Evisceração 2">Evisceração 2</option>
+                </optgroup>
+                <optgroup label="Câmaras">
+                    <option value="Câmara A">Câmara A</option>
+                    <option value="Câmara C">Câmara C</option>
+                    <option value="Câmara D">Câmara D</option>
+                    <option value="Câmara F">Câmara F</option>
+                </optgroup>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-clock"></i> Turno</label>
+            <select id="filtro-turno">
+                <option value="">Todos</option>
+                <option value="1">1º Turno</option>
+                <option value="2">2º Turno</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+  <label><i class="fas fa-store"></i> Mercado</label>
+  <select id="filtro-tipo">
+    <option value="">Todos</option>
+    <option value="MI">MI</option>
+    <option value="ME">ME</option>
+  </select>
+</div>
+
+
+        
+        <div class="form-group" style="align-self: flex-end;">
+           <button onclick="carregarRegistros()" 
+    style="flex-basis: 150px; flex-grow: 0; background:#6805b9; color:#fff; border:none; padding:10px 20px; border-radius:8px; font-size:16px; cursor:pointer; transition:0.3s; box-shadow:0 4px 6px rgba(0,0,0,0.1);">
+    Filtrar
+  </button>
+        </div>
+        
+        <div class="form-group" style="align-self: flex-end;">
+            <button onclick="exportarParaExcel()" class="btn-info"><i class="fas fa-file-excel"></i> Exportar Excel</button>
+        </div>
+        
+        <div class="form-group" style="align-self: flex-end;">
+            <button onclick="exportarParaPDF()" class="btn-danger"><i class="fas fa-file-pdf"></i> Exportar PDF</button>
+        </div>
+    </div>
+    
+    <div class="registros" id="registros-container">
+        <!-- Cards serão gerados dinamicamente aqui -->
+    </div>
+</div>
+
+       <!-- Página de Gráficos -->
+<div id="graficos" class="tela">
+    <h1><i class="fas fa-chart-line"></i> Análise de Temperaturas</h1>
+    
+    <div class="filtros">
+        <div class="form-group">
+            <label><i class="fas fa-calendar-day"></i> Data Inicial</label>
+            <input type="date" id="grafico-data-inicio">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-calendar-day"></i> Data Final</label>
+            <input type="date" id="grafico-data-fim">
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-map-marker-alt"></i> Local</label>
+            <select id="grafico-local">
+                <option value="">Todos os locais</option>
+                <optgroup label="Giros Freezer">
+                    <option value="Giro Freezer 1">Giro Freezer 1</option>
+                    <option value="Giro Freezer 2">Giro Freezer 2</option>
+                    <option value="Giro Freezer 3">Giro Freezer 3</option>
+                    <option value="Giro Freezer 4">Giro Freezer 4</option>
+                    <option value="Giro Freezer 5">Giro Freezer 5</option>
+                    <option value="Giro Freezer 6">Giro Freezer 6</option>
+                </optgroup>
+                <optgroup label="Túneis">
+                    <option value="Túnel 1">Túnel 1</option>
+                    <option value="Túnel 2">Túnel 2</option>
+                    <option value="Túnel 3">Túnel 3</option>
+                    <option value="Túnel 4">Túnel 4</option>
+                    <option value="Túnel 5">Túnel 5</option>
+                    <option value="Túnel 6">Túnel 6</option>
+                    <option value="Túnel 7">Túnel 7</option>
+                </optgroup>
+                <optgroup label="Cortes">
+                    <option value="Cortes 1">Cortes 1</option>
+                    <option value="Cortes 2">Cortes 2</option>
+                    <option value="Rependura Cortes 1">Rependura Cortes 1</option>
+                    <option value="Rependura Cortes 2">Rependura Cortes 2</option>
+                </optgroup>
+                <optgroup label="Embalagem">
+                    <option value="Embalagem Secundária">Embalagem Secundária</option>
+                </optgroup>
+                <optgroup label="Expedição">
+                    <option value="Expedição 1">Expedição 1</option>
+                    <option value="Expedição 2">Expedição 2</option>
+                </optgroup>
+                <optgroup label="Paletização">
+                    <option value="Paletização 1">Paletização 1</option>
+                    <option value="Paletização 2">Paletização 2</option>
+                </optgroup>
+                <optgroup label="Outros">
+                    <option value="Miudos">Miudos</option>
+                    <option value="Evisceração 1">Evisceração 1</option>
+                    <option value="Evisceração 2">Evisceração 2</option>
+                </optgroup>
+                <optgroup label="Câmaras">
+                    <option value="Câmara A">Câmara A</option>
+                    <option value="Câmara C">Câmara C</option>
+                    <option value="Câmara D">Câmara D</option>
+                    <option value="Câmara F">Câmara F</option>
+                </optgroup>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label><i class="fas fa-store"></i> Mercado</label>
+            <select id="grafico-mercado">
+                <option value="">Todos os mercados</option>
+                <option value="MI">Mercado Interno (MI)</option>
+                <option value="ME">Mercado Externo (ME)</option>
+            </select>
+        </div>
+
+        <div class="form-group" style="align-self: flex-end;">
+            <button onclick="carregarGraficos()" class="btn-success">
+                <i class="fas fa-sync-alt"></i> Atualizar Gráficos
+            </button>
+        </div>
+        
+        <div class="form-group" style="align-self: flex-end;">
+            <button onclick="exportarGraficosPDF()" class="btn-danger">
+                <i class="fas fa-file-pdf"></i> Exportar PDF
+            </button>
+        </div>
+    </div>
+    
+    <!-- Gráfico por Produto -->
+    <div class="chart-container">
+        <h2><i class="fas fa-thermometer-half"></i> Temperatura Média por Produto</h2>
+        <canvas id="graficoProdutos"></canvas>
+    </div>
+
+    <!-- Gráfico de Médias por Local -->
+    <div class="chart-container">
+        <h2><i class="fas fa-chart-bar"></i> Média de Temperaturas por Local</h2>
+        <canvas id="graficoMedias"></canvas>
+    </div>
+
+    <!-- Gráfico de Variação por Data -->
+    <div class="chart-container">
+        <h2><i class="fas fa-chart-line"></i> Variação de Temperaturas</h2>
+        <canvas id="graficoVariacao"></canvas>
+    </div>
+</div>
+
+
+        
+
+<!-- Página de Configurações -->
+<div id="configuracoes" class="tela">
+    <h1><i class="fas fa-cog"></i> Configurações do Sistema</h1>
+    
+    <div class="config-section">
+        <h2><i class="fas fa-filter"></i> Filtros Padrão</h2>
+        <div class="config-option">
+            <label>Período padrão para visualização:</label>
+            <select id="filtro-periodo">
+                <option value="0">Hoje</option>
+                <option value="7">Últimos 7 dias</option>
+                <option value="30">Últimos 30 dias</option>
+                <option value="60">Últimos 60 dias</option>
+                <option value="90">Últimos 90 dias</option>
+                <option value="180">Últimos 180 dias</option>
+            </select>
+        </div>
+    </div>
+    
+    <div class="config-section">
+        <h2><i class="fas fa-database"></i> Manutenção de Dados</h2>
+        <div class="config-option danger-zone">
+            <h3><i class="fas fa-trash"></i> Limpeza de Dados Antigos</h3>
+            <p>Selecione o período de dados que deseja manter:</p>
+            <select id="limpeza-periodo">
+                <option value="15">Manter últimos 15 dias</option>
+                <option value="30">Manter últimos 30 dias</option>
+                <option value="60">Manter últimos 60 dias</option>
+                <option value="90" selected>Manter últimos 90 dias</option>
+                <option value="180">Manter últimos 180 dias</option>
+            </select>
+            <button onclick="verificarSenha(executarLimpeza)" class="btn-danger" style="margin-top: 10px;">
+                <i class="fas fa-trash"></i> Executar Limpeza
+            </button>
+            <p style="color: #ff4444; margin-top: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> Atenção: Esta ação é irreversível!
+            </p>
+        </div>
+        
+        <div class="config-option danger-zone">
+            <h3><i class="fas fa-skull-crossbones"></i> Reset Completo</h3>
+            <p>Apaga TODOS os registros do sistema:</p>
+            <button onclick="verificarSenha(resetarCompleto)" class="btn-danger" style="background-color: #ff0000;">
+                <i class="fas fa-bomb"></i> RESETAR TODOS OS DADOS
+            </button>
+            <p style="color: #ff0000; margin-top: 10px;">
+                <i class="fas fa-exclamation-triangle"></i> ATENÇÃO: Esta ação não pode ser desfeita!
+            </p>
+        </div>
+    </div>
+</div>
+
+    <script>
+
+
+    // Configuração do Firebase
+    const firebaseConfig = {
+        apiKey: "AIzaSyAhDyVaRlMyxIwSAIMcsB15zLKKJYdTvt0",
+        authDomain: "controle-q.firebaseapp.com",
+        projectId: "controle-q",
+        storageBucket: "controle-q.appspot.com",
+        messagingSenderId: "611076568023",
+        appId: "1:611076568023:web:1673b0fc82d1f42584d192",
+        measurementId: "G-52K5PJ8WE3"
+    };
+
+    // Inicializar Firebase
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+    
+    
+// Variáveis globais
+let registros = [];
+let timeoutSessao;
+const TEMPO_SESSAO = 3600000; // 1 hora em milissegundos
+let graficoMedias, graficoVariacao;
+let intervaloAtualizacao;
+const INTERVALO_ATUALIZACAO = 30000; // 30 segundos
+
+// Declaração das funções de exportação como globais
+window.exportarParaPDF = exportarParaPDF;
+window.exportarParaExcel = exportarParaExcel;
+
+    // Função para validar senha
+    function validarSenha() {
+        const senha = document.getElementById('senhaInput').value;
+        if (senha === '2025') {
+            document.getElementById('login-overlay').style.display = 'none';
+            localStorage.setItem('ultimoLogin', Date.now());
+            iniciarMonitoramentoSessao();
+            iniciarAtualizacaoAutomatica();
+            carregarDadosIniciais();
+        } else {
+            alert('Senha incorreta!');
+            document.getElementById('senhaInput').value = '';
+        }
+    }
+
+    // Monitorar tempo de sessão
+    function iniciarMonitoramentoSessao() {
+        clearTimeout(timeoutSessao);
+        timeoutSessao = setTimeout(() => {
+            fazerLogout();
+        }, TEMPO_SESSAO);
+        
+        document.addEventListener('click', resetarSessao);
+        document.addEventListener('keypress', resetarSessao);
+    }
+
+    function resetarSessao() {
+        clearTimeout(timeoutSessao);
+        timeoutSessao = setTimeout(() => {
+            fazerLogout();
+        }, TEMPO_SESSAO);
+    }
+
+    function fazerLogout() {
+        localStorage.removeItem('ultimoLogin');
+        localStorage.removeItem('paginaAtual');
+        pararAtualizacaoAutomatica();
+        document.getElementById('login-overlay').style.display = 'flex';
+        document.getElementById('senhaInput').value = '';
+    }
+
+    // Funções para atualização automática
+    function iniciarAtualizacaoAutomatica() {
+        pararAtualizacaoAutomatica();
+        intervaloAtualizacao = setInterval(() => {
+            const paginaAtual = localStorage.getItem('paginaAtual') || 'visualizar';
+            if (paginaAtual === 'visualizar') {
+                carregarRegistros();
+            } else if (paginaAtual === 'graficos') {
+                carregarGraficos();
+            }
+        }, INTERVALO_ATUALIZACAO);
+    }
+
+    function pararAtualizacaoAutomatica() {
+        if (intervaloAtualizacao) {
+            clearInterval(intervaloAtualizacao);
+        }
+    }
+
+    // Verificar login ao carregar
+    window.onload = function() {
+    const ultimoLogin = localStorage.getItem('ultimoLogin');
+    const agora = Date.now();
+    
+    if (!ultimoLogin || (agora - ultimoLogin > TEMPO_SESSAO)) {
+        fazerLogout();
+    } else {
+        document.getElementById('login-overlay').style.display = 'none';
+        iniciarMonitoramentoSessao();
+        iniciarAtualizacaoAutomatica();
+
+        const paginaAtual = localStorage.getItem('paginaAtual') || 'visualizar';
+        mostrarTela(paginaAtual, false);
+
+        carregarDadosIniciais();
+    }
+
+    // Remove o alerta fixo de sucesso se existir
+    const successFixed = document.getElementById('success-message');
+    if (successFixed) successFixed.remove();
+
+
+    
+};
+
+
+    // Funções do sistema
+    function mostrarTela(id, salvarLocalStorage = true) {
+        document.querySelectorAll('.tela').forEach(tela => {
+            tela.classList.remove('ativa');
+        });
+        document.getElementById(id).classList.add('ativa');
+        
+        document.querySelectorAll('.sidebar ul li').forEach(item => {
+            item.classList.remove('active');
+        });
+        
+        // Ativar o item correto no menu
+        const menuItem = document.querySelector(`.sidebar ul li[onclick*="${id}"]`);
+        if (menuItem) {
+            menuItem.classList.add('active');
+        }
+        
+        if (salvarLocalStorage) {
+            localStorage.setItem('paginaAtual', id);
+        }
+        
+        if (id === 'visualizar') {
+            carregarRegistros();
+        } else if (id === 'graficos') {
+            carregarGraficos();
+        }
+    }
+    
+//SENHA DE REST E LIMPEZA//
+  const SENHA_SEGURA = "LaR2025";
+
+  function verificarSenha(callback) {
+    const senha = prompt("Digite a senha para confirmar esta ação:");
+    if (senha === SENHA_SEGURA) {
+      callback();
+    } else {
+      alert("Senha incorreta. Ação cancelada.");
+    }
+  }
+
+
+    function mostrarAlertaTemperatura(mensagem, tipo = 'success') {
+        const cores = {
+            success: '#4CAF50',
+            warning: '#FFC107',
+            danger: '#F44336'
+        };
+        
+        const icones = {
+            success: 'fa-check-circle',
+            warning: 'fa-exclamation-triangle',
+            danger: 'fa-times-circle'
+        };
+
+        const alerta = document.createElement('div');
+        alerta.className = 'alert-flutuante';
+        alerta.style.backgroundColor = cores[tipo] || cores.success;
+        alerta.innerHTML = `<i class="fas ${icones[tipo]}"></i> ${mensagem}`;
+        
+        document.body.appendChild(alerta);
+        
+        setTimeout(() => {
+            alerta.remove();
+        }, 3000);
+    }
+
+ async function registrarTemperatura() {
+    try {
+        const camposObrigatorios = [
+            'turno', 'local', 'produto', 'tipo', 'estado',
+            'temp-inicio', 'temp-meio', 'temp-fim',
+            'data-manual', 'horario-manual'
+        ];
+
+        for (const campoId of camposObrigatorios) {
+            const campo = document.getElementById(campoId);
+            if (!campo.value.trim()) {
+                mostrarAlertaTemperatura(`Preencha o campo ${campoId.replace('-', ' ')}!`, 'warning');
+                campo.focus();
+                return;
+            }
+
+            if (campoId.includes('temp-') && isNaN(campo.value)) {
+                mostrarAlertaTemperatura(`Temperatura inválida no campo ${campoId.replace('-', ' ')}!`, 'danger');
+                campo.focus();
+                return;
+            }
+        }
+
+        const dataManual = document.getElementById('data-manual').value;
+        const horarioManual = document.getElementById('horario-manual').value;
+
+        const [ano, mes, dia] = dataManual.split('-').map(Number);
+        const [hora, minuto] = horarioManual.split(':').map(Number);
+
+        if (isNaN(ano) || isNaN(mes) || isNaN(dia) || isNaN(hora) || isNaN(minuto)) {
+            mostrarAlertaTemperatura('Data ou horário inválido!', 'danger');
+            return;
+        }
+
+        const dataComHorario = new Date(ano, mes - 1, dia, hora, minuto);
+
+        const registro = {
+            turno: document.getElementById('turno').value,
+            local: document.getElementById('local').value,
+            codigo: document.getElementById('codigo').value || 'N/A',
+            produto: document.getElementById('produto').value,
+            tipo: document.getElementById('tipo').value,
+            estado: document.getElementById('estado').value,
+            temperaturas: {
+                inicio: parseFloat(document.getElementById('temp-inicio').value),
+                meio: parseFloat(document.getElementById('temp-meio').value),
+                fim: parseFloat(document.getElementById('temp-fim').value)
+            },
+            horarioManual: horarioManual,
+            dataManual: dataManual,
+            data: firebase.firestore.Timestamp.fromDate(dataComHorario) // 🔥 CONVERTIDO para Firestore
+        };
+
+        await db.collection("registros").add(registro);
+
+        mostrarAlertaTemperatura('Temperatura registrada com sucesso!', 'success');
+        limparFormulario();
+        await carregarRegistros();
+        await carregarGraficos();
+
+    } catch (error) {
+        mostrarAlertaTemperatura('Erro ao registrar temperatura!', 'danger');
+        console.error("Erro ao registrar:", error);
+    }
+}
+
+    
+    function mostrarMensagemTemporaria(tipo, mensagem) {
+        const msg = document.createElement('div');
+        msg.className = `alert alert-${tipo}`;
+        msg.style.position = 'fixed';
+        msg.style.top = '20px';
+        msg.style.right = '20px';
+        msg.style.zIndex = '1000';
+        msg.style.animation = 'fadeIn 0.5s, fadeOut 0.5s 2.5s forwards';
+        msg.innerHTML = `<i class="fas fa-${tipo === 'success' ? 'check' : 'exclamation'}-circle"></i> ${mensagem}`;
+        
+        document.body.appendChild(msg);
+        
+        setTimeout(() => {
+            msg.remove();
+        }, 3000);
+    }
+    
+    function mostrarAlerta(tipo, mensagem) {
+        const alertSuccess = document.getElementById('alertSuccess');
+        const alertError = document.getElementById('alertError');
+        
+        if (tipo === 'success') {
+            alertSuccess.innerHTML = `<i class="fas fa-check-circle"></i> ${mensagem}`;
+            alertSuccess.style.display = 'flex';
+            alertError.style.display = 'none';
+            
+            setTimeout(() => {
+                alertSuccess.style.display = 'none';
+            }, 5000);
+        } else {
+            alertError.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${mensagem}`;
+            alertError.style.display = 'flex';
+            alertSuccess.style.display = 'none';
+            
+            setTimeout(() => {
+                alertError.style.display = 'none';
+            }, 5000);
+        }
+    }
+    
+    function limparFormulario() {
+    document.getElementById('codigo').value = '';
+    document.getElementById('produto').value = '';
+    document.getElementById('temp-inicio').value = '';
+    document.getElementById('temp-meio').value = '';
+    document.getElementById('temp-fim').value = '';
+    document.getElementById('data-manual').value = '';
+    document.getElementById('horario-manual').value = '';
+    document.getElementById('produto').focus();
+}
+
+    
+ async function carregarRegistros() {
+    try {
+        const dataInicioInput = document.getElementById('filtro-data-inicio');
+        const dataFimInput = document.getElementById('filtro-data-fim');
+        const local = document.getElementById('filtro-local').value.trim();
+        const turno = document.getElementById('filtro-turno').value.trim();
+        const tipo = document.getElementById('filtro-tipo').value.trim();
+
+        const hoje = new Date();
+        const hojeFormatado = hoje.toISOString().split('T')[0];
+
+        if (!dataInicioInput.value || !dataFimInput.value) {
+            dataInicioInput.value = hojeFormatado;
+            dataFimInput.value = hojeFormatado;
+        }
+
+        const dataInicio = new Date(dataInicioInput.value + 'T00:00:00');
+        const dataFim = new Date(dataFimInput.value + 'T23:59:59');
+
+        let query = db.collection("registros")
+            .where("data", ">=", dataInicio)
+            .where("data", "<=", dataFim)
+            .limit(100);
+
+        if (local) query = query.where("local", "==", local);
+        if (turno) query = query.where("turno", "==", turno);
+        if (tipo) query = query.where("tipo", "==", tipo);
+
+        const querySnapshot = await query.get();
+
+        const container = document.getElementById('registros-container');
+        container.innerHTML = '';
+        registros = [];
+
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+
+            const dataFinal = data.data?.toDate() || new Date();
+
+            const registro = {
+                id: doc.id,
+                ...data,
+                data: dataFinal
+            };
+            registros.push(registro);
+
+            const card = document.createElement('div');
+            card.className = 'card';
+
+            card.innerHTML = `
+                <h3><i class="fas fa-box"></i> ${data.produto} (${data.local})</h3>
+                <p><i class="fas fa-barcode"></i> <strong>Código:</strong> ${data.codigo || 'N/A'}</p>
+                <p><i class="fas fa-clock"></i> <strong>Turno:</strong> ${data.turno}º</p>
+                <p><i class="fas fa-tag"></i> <strong>Tipo:</strong> ${data.tipo} - ${data.estado}</p>
+                <p><i class="fas fa-temperature-low"></i> <strong>Temperaturas:</strong></p>
+                <p><i class="fas fa-play"></i> Início: ${data.temperaturas.inicio.toFixed(1).replace('.', ',')}°C</p>
+                <p><i class="fas fa-pause"></i> Meio: ${data.temperaturas.meio.toFixed(1).replace('.', ',')}°C</p>
+                <p><i class="fas fa-stop"></i> Fim: ${data.temperaturas.fim.toFixed(1).replace('.', ',')}°C</p>
+                <p><i class="fas fa-calendar-alt"></i> <strong>Data:</strong> ${data.dataManual || dataFinal.toLocaleDateString('pt-BR')}</p>
+                <p><i class="fas fa-clock"></i> <strong>Horário:</strong> ${data.horarioManual || dataFinal.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</p>
+                <button class="btn-excluir" onclick="excluirRegistro('${registro.id}')">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            `;
+            container.appendChild(card);
+        });
+
+        if (registros.length === 0) {
+            const periodo = dataInicioInput.value === dataFimInput.value
+                ? `para ${dataInicioInput.value}`
+                : `entre ${dataInicioInput.value} e ${dataFimInput.value}`;
+
+            container.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle"></i> Nenhum registro encontrado ${periodo}.
+                </div>
+            `;
+        }
+
+    } catch (error) {
+        console.error("Erro ao carregar registros:", error);
+        mostrarAlerta('error', 'Erro ao carregar registros: ' + error.message);
+    }
+}
+
+
+const produtosPorCodigo = {
+
+"1015": { produto: "CCF-COXA IQF 15X1KG", tipo: "MI" },
+"1016": { produto: "CCF-FILE SASSAMI IQF 15X1KG", tipo: "MI" },
+"16052": { produto: "PCF-PELE AVES PCT 15KG", tipo: "MI" },
+"16719": { produto: "MCFEX-FIGADO CONS ANIMAL BLOCO", tipo: "" },
+"18186": { produto: "COXA/SOB INTERF BC 16KG", tipo: "" },
+"18306": { produto: "CCF-COXA/SOB.INTERF.15KG", tipo: "MI" },
+"18351": { produto: "CCFEX-COXA/SOB S/O BL1 160/180G 12KG JÃ•", tipo: "" },
+"18364": { produto: "CCFEX-COXA/SOB S/O BL2 180/200G 12KG JÃ•", tipo: "" },
+"18377": { produto: "CCFEX-COXA/SOB S/O BL3 200/220G 12KG JÃ•", tipo: "" },
+"18380": { produto: "CCFEX-COXA/SOB S/O BL4 220/240G 12KG JÃ•", tipo: "" },
+"18393": { produto: "CCFEX-COXA/SOB S/O BL5 240/260G 12KG JÃ•", tipo: "" },
+"18399": { produto: "CCF-SOBRECOXA IQF 15X1KG", tipo: "MI" },
+"18403": { produto: "CCFEX-COXA/SOB S/O BL6 260/280G 12KG JÃ•", tipo: "" },
+"18416": { produto: "CCFEX-COXA/SOB S/O BL7 280/300G 12KG JÃ•", tipo: "" },
+"18441": { produto: "CCF-MEIO DAS ASAS IQF 15X1KG", tipo: "MI" },
+"19172": { produto: "CCFEX-KAKUGIRI BLK1 15/20G 12KG JA", tipo: "" },
+"19185": { produto: "CCFEX-KAKUGIRI BLK2 15/25G 12KG JA", tipo: "" },
+"19198": { produto: "CCFEX-KAKUGIRI BLK3 20/25G 12KG JA", tipo: "" },
+"19237": { produto: "CCFEX-COXA/SOB S/O BL8 200G UP 12KG L", tipo: "" },
+"19402": { produto: "CCFEX-KAKUGIRI BLK6 30/40G 12KG JA", tipo: "" },
+"24450": { produto: "MP-FILE S/C 15 KG (UIA-UIC)", tipo: "" },
+"24828": { produto: "MP-FILE S/CALIBRE RESFRIADO 20KG UIC", tipo: "" },
+"26067": { produto: "CCFEX-COXA/SOB S/O/P 675KG JB RUS OSI", tipo: "" },
+"27159": { produto: "CCFEX-MPEITO S/O/P 675KG JB RU-", tipo: "" },
+"29150": { produto: "CCFEX-M.PEITO S/O/P/F 6X2KG RU", tipo: "" },
+"29244": { produto: "CCF-FILE PEITO IQF 15X1KG MI", tipo: "" },
+"29245": { produto: "CCF-FGO PASSARINHO IQF 15X1KG MI", tipo: "" },
+"29248": { produto: "CCF-FILE COXA/SOB IQF 15X1KG MI", tipo: "" },
+"30624": { produto: "CCFEX-M.PEITO INTERF 15KG ARS", tipo: "" },
+"33404": { produto: "CCFEX-M.PEITO INTERF 15KG AF", tipo: "" },
+"33462": { produto: "CCFEX-COXA/SOB S/O/P INTERF 16KG BC", tipo: "" },
+"35538": { produto: "CCFEX-M PEITO FIL INT BC 16KG", tipo: "" },
+"36605": { produto: "CMSEX-CARNE MEC SEP 15KG AF", tipo: "" },
+"41407": { produto: "CCFEX-COXA/SOB S/O BL1 160/180G 12KG EVA", tipo: "" },
+"41408": { produto: "CCFEX-COXA/SOB S/O BL2 180/200G 12KG EVA", tipo: "" },
+"41410": { produto: "CCFEX-COXA/SOB S/O BL3 200/220G 12KG EVA", tipo: "" },
+"41411": { produto: "CCFEX-COXA/SOB S/O BL4 220/240G 12KG EVA", tipo: "" },
+"41413": { produto: "CCFEX-COXA/SOB S/O BL5 240/260G 12KG EVA", tipo: "" },
+"41414": { produto: "CCFEX-COXA/SOB S/O BL6 260/280G 12KG EVA", tipo: "" },
+"41415": { produto: "CCFEX-COXA/SOB S/O BL7 280/300G 12KG EVA", tipo: "" },
+"41416": { produto: "CCFEX-COXA/SOB S/O BL8 200G UP 12KG EVA", tipo: "" },
+"41962": { produto: "CCFEX-COXA IQF 12X1KG BC", tipo: "" },
+"41975": { produto: "CCFEX-COXA/SOB S/O/P 300/400 16KG BC", tipo: "" },
+"42039": { produto: "CCFEX-M PEITO FIL 300/400G BC 16KG", tipo: "" },
+"42055": { produto: "CCFEX-COXINHA ASA IQF BC 12X1KG", tipo: "" },
+"42806": { produto: "CCFEX-KAKUGIRI BLK9 25/30G 12KG JA", tipo: "" },
+"44037": { produto: "COXA INTERF AF 15 KG", tipo: "" },
+"44040": { produto: "COXA/SOB INTERF ARU 15KG", tipo: "" },
+"47020": { produto: "CCFEX-COXA/SOB C/DORSO 15KG CH", tipo: "" },
+"47106": { produto: "CCFEX-COXA/SOB INTERF 15KG CH", tipo: "" },
+"47107": { produto: "CCFEX-PELE DE AVES 15KG CHINA", tipo: "" },
+"47109": { produto: "CCFEX-M PEITO BC 300/400 16KG", tipo: "" },
+"47762": { produto: "CCFEX-ASA INTERF. 15KG CH", tipo: "" },
+"48500": { produto: "CCFEX-COXA/SOB S/O C/P 15KG OM", tipo: "" },
+"48703": { produto: "CCFEX-FILE SASSAMI IQF BC 12X1KG", tipo: "" },
+"48858": { produto: "CCF-PEITO C/O INTER. 18KG", tipo: "" },
+"49537": { produto: "MP-COXA/SOB S/O/S/P (MP)", tipo: "" },
+"49873": { produto: "CCFEX-COXA INTERF 15KG CH", tipo: "" },
+"50353": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG LG", tipo: "" },
+"50874": { produto: "CCF-COXINHA ASA IQF QUALITA 15X1KG MI", tipo: "" },
+"50875": { produto: "CCF-FGO PASSARINHO IQF QUALITA 15X1KG MI", tipo: "" },
+"50876": { produto: "CCF-FILE SASSAMI IQF QUALITA 15X1KG MI", tipo: "" },
+"50877": { produto: "CCF-FILE PEITO IQF QUALITA 15X1KG MI", tipo: "" },
+"51474": { produto: "CCFEX-COXINHA ASA INTERF. 15KG", tipo: "" },
+"51477": { produto: "CCFEX-MEIO ASA INT 30+ 15KG CH", tipo: "" },
+"52860": { produto: "CCFSEX-M.PEITO SAL HC 15KG UE", tipo: "" },
+"53174": { produto: "CCF-SOBRECOXA IQF QUALITA 15X1KG MI", tipo: "" },
+"53733": { produto: "CCF-ASA LAR INTERF. 18KG MI", tipo: "" },
+"53734": { produto: "CCF-COXINHA ASA INTERF 18 KG", tipo: "" },
+"53735": { produto: "CCF-COXA INTERF 18KG MI", tipo: "" },
+"53736": { produto: "CCF-FILE COXA/SOB INT 18KG", tipo: "" },
+"53739": { produto: "CCF-MEIO PEITO INT 18KG MI", tipo: "" },
+"54103": { produto: "CRF-FILE PEITO RESF 6X3 PCT MI", tipo: "" },
+"54104": { produto: "CRF-COXA/SOB RESF 6X3 PCT MI", tipo: "" },
+"54105": { produto: "CRF-PEITO C/O RESF 6X3KG PCT MI", tipo: "" },
+"54106": { produto: "CRF-PEITO S/O/P/SA RESF BOLSAO 18KG MI", tipo: "" },
+"54116": { produto: "CRF-COXA/SOB RESF BOLSAO 18KG MI", tipo: "" },
+"54117": { produto: "CRF-COXA/SOB S/O RESF BOLSAO 18KG MI", tipo: "" },
+"54118": { produto: "CRF-PEITO C/O RESF .BOLSAO 18KG MI", tipo: "" },
+"54147": { produto: "CRF-COXINHA ASA RESF 6X3KG MI PCT", tipo: "" },
+"54148": { produto: "CRF-COXINHA ASA RESF. BOLSAO 18KG MI", tipo: "" },
+"54203": { produto: "CCFEX-M PEITO 6X2KG UE TIMB", tipo: "" },
+"54204": { produto: "CCFEX-M.PEITO 6X2KG 12KG LG TIMB", tipo: "" },
+"54209": { produto: "CCFEX-M.PEITO 675KG JB UE TIMB", tipo: "" },
+"54313": { produto: "CCF-FILE PEITO FIL INT 18KG MI", tipo: "" },
+"54406": { produto: "CRF-FILE PEITO RESF BOLSAO 18KG MI", tipo: "" },
+"54408": { produto: "CRF-FILE SASSAMI RESF. PCT 6X3 MI", tipo: "" },
+"54413": { produto: "CCFEX-M PEITO SAL 675KG JB UE TIMB", tipo: "" },
+"54414": { produto: "CCFSEX-M PEITO SAL 6X2KG UE TIM", tipo: "" },
+"54419": { produto: "CCFEX-M.PEITO 6X2KG 12KG ARS TIMB", tipo: "" },
+"54420": { produto: "CCFEX-M.PEITO 2X7,5KG 15KG ARS TIMB", tipo: "" },
+"54421": { produto: "CCFEX-CARTILAGEM COXA CH 6X2KG TIMB", tipo: "" },
+"54735": { produto: "CRF-SOBRECOXA RESF. PCT 6X3 MI", tipo: "" },
+"54736": { produto: "CRF-SOBRECOXA RESF BOLSAO 18KG", tipo: "" },
+"54792": { produto: "CCF-FILE PEITO BOLSAO 18KG MI", tipo: "" },
+"54793": { produto: "CCF-FILE SASSAMI BOLSAO 18KG MI", tipo: "" },
+"54851": { produto: "CRF-FILE PEITO RESF BOLSAO CXVZ 18KG MI", tipo: "" },
+"54853": { produto: "CRF-FILE SASSAMI RESF BOLS CXVZ 18KG MI", tipo: "" },
+"55207": { produto: "CMS-CARNE MEC.SEP.CONG.DE AVES 18KG", tipo: "" },
+"55216": { produto: "MCF-CORACAO PCT.18KG MI", tipo: "" },
+"55221": { produto: "MCF-MOELA PCT.18KG MI", tipo: "" },
+"55456": { produto: "CCFEX-COXA/SOB S/O/P INTERF 16KG BC", tipo: "" },
+"55938": { produto: "CCF-COXA IQF QUALITA 15X1KG MI", tipo: "" },
+"56694": { produto: "RCF-RECORTE DE PEITO PCT 18KG MI", tipo: "" },
+"56697": { produto: "PCF-PELE AVES PCT 18KG MI", tipo: "" },
+"58314": { produto: "CRF-FILE PEITO RESF FIL BOLSAO 18KG MI", tipo: "" },
+"58417": { produto: "CCFEX-COXINHA ASA INTERF. 15KG LG", tipo: "" },
+"58483": { produto: "CCF-SOBRECOXA S/P INTERF 18KG MI", tipo: "" },
+"58485": { produto: "CCF-PEITO C/O S/P INTERF 18 KG MI", tipo: "" },
+"61021": { produto: "CCFEX-COXA/SOB C/DORSO 15KG LG", tipo: "" },
+"61705": { produto: "CCF-PEITO C/DORSO ENV 18KG MI", tipo: "" },
+"61707": { produto: "CCF-PEITO C/O ENV 18KG MI", tipo: "" },
+"62542": { produto: "MP-M.PEITO (UIA-UIC 15KG)", tipo: "" },
+"62669": { produto: "CCF-FILE DE PEITO BOLSAO 18KG MI S/CX", tipo: "" },
+"62670": { produto: "CCF-FILE SASSAMI BOLSAO 18KG MI S/CX", tipo: "" },
+"62932": { produto: "CCFEX-PONTA ASA 15KG CH", tipo: "" },
+"62934": { produto: "COXA/SOB S/O C/P 12KG LG", tipo: "" },
+"62935": { produto: "CCFEX-COXINHA ASA IQF 12X1KG LG", tipo: "" },
+"62989": { produto: "COXA/SOB S/O S/P 12KG LG", tipo: "" },
+"62992": { produto: "MCFEX-MOELA PCT 15KG LG", tipo: "" },
+"62993": { produto: "MCFEX-MOELA PCT 15KG UE", tipo: "" },
+"64718": { produto: "CCF-COXA/SOB C/DORSO INT 15KG MI", tipo: "" },
+"65147": { produto: "CCFEX-PELE 15KG LG", tipo: "" },
+"65337": { produto: "CCFEX-CARTILAGEM PEITO CH 1X10KG TIMB", tipo: "" },
+"65763": { produto: "CRF-COXA/SOB. ENV. RESF. 18KG MI", tipo: "" },
+"65765": { produto: "CRF-M.PEITO RESF ENV 18KG MI", tipo: "" },
+"65766": { produto: "CRF-PEITO C/O ENV. RESF. 18KG MI", tipo: "" },
+"65767": { produto: "CRF-COXINHA ASA ENV. RESF. 18KG MI", tipo: "" },
+"70329": { produto: "CCFEX-COXA/SOB S/O C/P 675KG RU", tipo: "" },
+"70330": { produto: "CCFEX-MPEITO S/O/P MC 675KG RU OSI", tipo: "" },
+"70654": { produto: "CRF-PEITO S/O/P/SA RESF 6X3 PCT MI", tipo: "" },
+"71062": { produto: "CCFEX-M.PEITO INTERF 15KG LG", tipo: "" },
+"71063": { produto: "CCFEX-M.PEITO 6X2KG 12KG LG TIMB", tipo: "" },
+"71367": { produto: "CCF-COXA/SOB C/DORSO ENV 18KG MI", tipo: "" },
+"71707": { produto: "CCF-COXINHA ASA ENV. 20KG MI", tipo: "" },
+"71710": { produto: "CCF-COXA/SOB ENV. 20KG MI", tipo: "" },
+"71711": { produto: "CCF-SOBRECOXA ENV. 20KG MI", tipo: "" },
+"71713": { produto: "CCF-FILE DE PEITO ENV. 20KG MI", tipo: "" },
+"71716": { produto: "CCF-PEITO C/O ENV. 20KG MI", tipo: "" },
+"71719": { produto: "CCF-SASSAMI ENV. 20KG MI", tipo: "" },
+"71722": { produto: "CCF-SAMBIQUIRA ENV. 20KG MI", tipo: "" },
+"71755": { produto: "CRF-MEIO DA ASA RES BOLSAO 18KG MI", tipo: "" },
+"72318": { produto: "M PEITO INTERF UE 15KG", tipo: "" },
+"72694": { produto: "CCF-PEITO S/O/P ENV 20KG MI", tipo: "" },
+"73562": { produto: "CCFEX-COXA/SOB S/O C/P 6X2KG RU", tipo: "" },
+"74348": { produto: "CCFEX-M.PEITO INTERF 15KG RU", tipo: "" },
+"75561": { produto: "CCF-ASA ENV 18KG MI", tipo: "" },
+"78263": { produto: "CCF-FILE COXA/SOB ENV. 20KG", tipo: "" },
+"79370": { produto: "CCFEX-PES 2X7,5KG CH", tipo: "" },
+"79838": { produto: "CCF-SOBRECOXA INTERF 18KG MI", tipo: "" },
+"79867": { produto: "CRF-FILE SASSAMI C/T RESF BOLSAO 20KG MI", tipo: "" },
+"82457": { produto: "CRF-ASA RESF 6X3KG MI", tipo: "" },
+"82459": { produto: "CRF-MEIO DA ASA RESF 6X3KG MI", tipo: "" },
+"84927": { produto: "REFILE DE PESCOCO UIC", tipo: "" },
+"85584": { produto: "CCFEX-COXA/SOB C/DORSO 15 KG RU", tipo: "" },
+"85590": { produto: "CCF-PESCOCO 18KG MI", tipo: "" },
+"85980": { produto: "COXINHA ASA INTER 15KG RU", tipo: "" },
+"86390": { produto: "CRF-COXA/SOB S/OSSO RESF 230-250G 1X18KG", tipo: "" },
+"89019": { produto: "CMSEX-CARNE MEC SEP 15KG RU", tipo: "" },
+"90876": { produto: "CCFEX-M.PEITO BLOCO 15KG LG", tipo: "" },
+"91390": { produto: "CCFEX-COXA/SOB S/O C/P 6X2KG CS", tipo: "" },
+"91391": { produto: "CCFEX-COXA/SOB S/O C/P LP 15KG CS", tipo: "" },
+"91866": { produto: "CCFEX-M.PEITO 6X2KG 12KG CS", tipo: "" },
+"91870": { produto: "CCFEX-COXA/SOB INTERF 15KG CS", tipo: "" },
+"93380": { produto: "CCFEX-M PEITO 675KG JB LG", tipo: "" },
+"93381": { produto: "CCFEX-M.PEITO 2X7,5KG 15KG LG", tipo: "" },
+"94282": { produto: "CCFEX-SOBRECOXA INTERF 15KG CH", tipo: "" },
+"94291": { produto: "CRF-SASSAMI RESF BOLS S TENDAO CXVZ 18KG", tipo: "" },
+"94413": { produto: "CCFEX-M.PEITO 6X2KG 12KG KO/AL", tipo: "" },
+"94510": { produto: "CCFEX-M.PEITO 4X2,5KG 10KG ARS TIMB", tipo: "" },
+"94515": { produto: "CCFEX-M.PEITO 4X2,5KG 10KG LG", tipo: "" },
+"94614": { produto: "CCFEX-M.PEITO INTERF 15KG KOS", tipo: "" },
+"94633": { produto: "CCF-COXA/SOB S/O/P ENV.20KG", tipo: "" },
+"95627": { produto: "CCFEX-SOBRECOXA INTERF 15KG CS", tipo: "" },
+"96364": { produto: "CRF-ASA ENV RESF 18KG MI", tipo: "" },
+"96365": { produto: "CRF- MEIO ASA ENV RESF 18KG MI", tipo: "" },
+"96366": { produto: "CRF-COXA/SOB S/O ENV RESF 18KG", tipo: "" },
+"96367": { produto: "CRF-SOBRECOXA ENV RESF 18KG MI", tipo: "" },
+"96374": { produto: "CRF-PEITO S/O/P/S ENV RESF 18KG", tipo: "" },
+"96377": { produto: "CRF-FILE SASSAMI ENV RESF 18KG MI", tipo: "" },
+"96720": { produto: "CRF-ASA ENV RESF AKILA 18KG MI", tipo: "" },
+"96721": { produto: "CRF-MEIO ASA ENV RESF AKILA 18 KG", tipo: "" },
+"96722": { produto: "CRF-COXA/SOB S/O ENV RESF AKILA 18KG MI", tipo: "" },
+"96723": { produto: "CRF-SOBRECOXA ENV RESF AKILA 18KG MI", tipo: "" },
+"96727": { produto: "CRF-FILE SASSAMI ENV RESF AKILA 18KG MI", tipo: "" },
+"96990": { produto: "CRF-COXINHA ASA ENV RESF AKILA 18KG MI", tipo: "" },
+"96992": { produto: "CRF-COXA/SOB ENV RESF AKILA 18KG MI", tipo: "" },
+"96994": { produto: "CRF-M.PEITO RESF ENV AKILA 18KG MI", tipo: "" },
+"97032": { produto: "CRF-PEITO C/O ENV RESF AKILA 18KG MI", tipo: "" },
+"97322": { produto: "FRANGO INTEIRO RESFRIADO SEM MIUDOS", tipo: "" },
+"97957": { produto: "CRF-FILE PEITO RESF BOLS OMAMORI 18KG MI", tipo: "" },
+"97981": { produto: "PELE DE AVES 1X15kG LG", tipo: "" },
+"99048": { produto: "CMS MI-CARNE MEC.SEP.AVES-CONG.PLACAS", tipo: "" },
+"99296": { produto: "CCF-COXA/SOB S/O/P CONG BOLSAO", tipo: "" },
+"99675": { produto: "CRF-MOELA RESF ENV 18KG MI", tipo: "" },
+"99676": { produto: "CRF-CORACAO RESF ENV 18KG MI", tipo: "" },
+"102910": { produto: "CCFEX-M.PEITO INTERF 15KG MEX", tipo: "" },
+"102914": { produto: "CCFEX-M.PEITO 6X2KG 12KG MEX", tipo: "" },
+"102917": { produto: "CCFEX-COXINHA ASA INTERF 15KG MEX", tipo: "" },
+"102918": { produto: "CCFEX-PEITO COM OSSO INTERF 15KG MEX", tipo: "" },
+"102919": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG MEX", tipo: "" },
+"102920": { produto: "CCFEX-PELE DE AVES 1X15KG MEX", tipo: "" },
+"104079": { produto: "CRF-FILE PEITO RESF CX PAPELAO 18KG MI", tipo: "" },
+"104434": { produto: "CCFEX-COXA/SOB S/O C/P 15KG CH 200G UP", tipo: "" },
+"105024": { produto: "CCFEX-COXINHA ASA INTERF. 15KG ARS", tipo: "" },
+"105025": { produto: "CCFEX-MEIO ASA INTERF 15KG ARS", tipo: "" },
+"106338": { produto: "CCFEX-COXA/SOB S/O C/P SI", tipo: "" },
+"106339": { produto: "CCFEX-COXA/SOB S/O C/P 160/180G SI", tipo: "" },
+"106340": { produto: "CCFEX-COXA/SOB S/O C/P 180/200G SI", tipo: "" },
+"106341": { produto: "CCFEX-COXA/SOB S/O C/P 200/220G SI", tipo: "" },
+"106342": { produto: "CCFEX-COXA/SOB S/O C/P 220/240G SI", tipo: "" },
+"106343": { produto: "CCFEX-COXA/SOB S/O C/P 240/260G SI", tipo: "" },
+"106345": { produto: "CCFEX-COXA/SOB S/O C/P 260/280G SI", tipo: "" },
+"106346": { produto: "CCFEX-COXA/SOB S/O C/P 280/300G SI", tipo: "" },
+"106347": { produto: "CCFEX-M.PEITO 6X2KG 12KG SI", tipo: "" },
+"106348": { produto: "CCFEX-ASA 100/120G 8X2KG SI", tipo: "" },
+"106349": { produto: "CCFEX-ASA 120/140G 8X2KG SI", tipo: "" },
+"106350": { produto: "CCFEX-ASA 90G UP 8X2KG SI", tipo: "" },
+"106351": { produto: "CCFEX-ASA 100/120G 15KG SI", tipo: "" },
+"106352": { produto: "CCFEX-ASA 120/140G 15KG SI", tipo: "" },
+"106353": { produto: "CCFEX-ASA 90G UP 15KG SI", tipo: "" },
+"106354": { produto: "CCFEX-COXA 8X2KG SI", tipo: "" },
+"106355": { produto: "CCFEX-SOBRECOXA 6X2KG SI", tipo: "" },
+"108395": { produto: "CCFEX-M.PEITO 6X2KG 12KG OMAN 12M", tipo: "" },
+"108926": { produto: "CCFEX-M.PEITO 4X2,5KG 10KG OMAN TIMB", tipo: "" },
+"111489": { produto: "CCFEX-M PEITO SAL 675KG JB UE BLUE", tipo: "" },
+"111490": { produto: "CCFEX-PES 3X5KG CH", tipo: "" },
+"111938": { produto: "CCFEX-COXA/SOB S/O C/P 15KG RU", tipo: "" },
+"112592": { produto: "CCFEX-COXA/SOB C/ DORSO 15KG SI", tipo: "" },
+"112593": { produto: "CCF-COXA/SOB C/DORSO INT 15KG MI-", tipo: "" },
+"114288": { produto: "CCF-COXA ENV.20KG MI", tipo: "" },
+"114934": { produto: "CCFEX - M. PEITO INTERF 4C 15KG", tipo: "" },
+"120733": { produto: "CCFEX-ASA INTERF. 15KG ARS", tipo: "" },
+"122271": { produto: "CCFEX-COXA INTERF 15KG SI", tipo: "" },
+"122272": { produto: "CCFEX-SOBRECOXA INTERF 15KG SI", tipo: "" },
+"122897": { produto: "CCF-FILE SASSAMI BOLSAO S/TEND", tipo: "" },
+"127672": { produto: "CCFSEX-M.PEITO HCLP 15KG UE", tipo: "" },
+"127972": { produto: "MCFEX-MOELA PCT 15KG COREIA", tipo: "" },
+"128355": { produto: "CCFEX-MEIO COM PONTA INTER CHINA", tipo: "" },
+"133500": { produto: "CCFEX-PONTA ASA 3X5KG", tipo: "" },
+"134725": { produto: "MP-FILE FILET 2 RESF. EMPANADOS UIC", tipo: "" },
+"134726": { produto: "MP-ISCAS FILE PEITO PARA EMPANADOS UIC", tipo: "" },
+"137695": { produto: "FGO-FRANGO INTEIRO CONGELADO SEM MIUDOS", tipo: "" },
+"137864": { produto: "M PEITO RESF BOLSAO 18KG", tipo: "" },
+"138481": { produto: "CMSEX-CARNE MEC SEP CONG.FRANGO 15KG 24M", tipo: "" },
+"138823": { produto: "CCFEX-M PEITO 2X7,5KG 15KG LG", tipo: "" },
+"138946": { produto: "MP-M.PEITO QUALIDADE A 20KG UI", tipo: "" },
+"139668": { produto: "CCFEX-M PEITO S/O S/P 6X2KG MA", tipo: "" },
+"146671": { produto: "MCF-FIGADO PET FOOD. 15KG MI", tipo: "" },
+"150352": { produto: "CCFEX-M.PEITO 6X2KG 12KG CH", tipo: "" },
+"150353": { produto: "CCFEX-M.PEITO INTERF 15KG CH", tipo: "" },
+"151061": { produto: "CCFEX-PES C 2X7,5KG", tipo: "" },
+"155154": { produto: "CRF-FILE PEITO TRADICIONAL 20X700G", tipo: "" },
+"155158": { produto: "CRF-COXINHA ASA TRADICIONAL 20X700G", tipo: "" },
+"155166": { produto: "CRF-MEIO ASA TRADICIONAL 20X700G", tipo: "" },
+"155171": { produto: "CRF-SOBRECOXA TRADICIONAL 20X700G", tipo: "" },
+"155179": { produto: "CRF-COXA TRADICIONAL 20X700G", tipo: "" },
+"155185": { produto: "CRF-FGO PASSAR TRADICIONAL 20X700G", tipo: "" },
+"155328": { produto: "CCFEX-COXA/SOB SBL MEX 15KG", tipo: "" },
+"157204": { produto: "CCFEX-COXA/SOB S/O C/P 15KG SINGAPURA", tipo: "" },
+"170342": { produto: "CCFEX-COXINHA ASA IQF 12X1KG CHINA", tipo: "" },
+"170841": { produto: "CCF-M.PEITO BOLSAO 18KG MI", tipo: "" },
+"173000": { produto: "MP-FILE COXA/SOB 15KG", tipo: "" },
+"173766": { produto: "CCF-COXINHA ASA IQF 20X700G MI", tipo: "" },
+"173776": { produto: "CCF-FILE SASSAMI IQF 20X700G MI", tipo: "" },
+"173781": { produto: "CCF-FILE PEITO IQF 20X700G MI", tipo: "" },
+"173809": { produto: "CCF-COXA IQF 20X700G MI", tipo: "" },
+"173826": { produto: "CCF-SOBRECOXA IQF 20X700G MI", tipo: "" },
+"173832": { produto: "CCF-FGO PASSARINHO IQF 20X700G MI", tipo: "" },
+"182072": { produto: "CCFEX-M PEITO 16X1KG LG 24M", tipo: "" },
+"182726": { produto: "MP-FILEZINHO SASSAMI INJETADO", tipo: "" },
+"184865": { produto: "MP-COXA/SOB S/O/S/P INJETADO (MP)", tipo: "" },
+"184866": { produto: "MP-FILE FILET 2 RESF INJETADO EMP UIC", tipo: "" },
+"197100": { produto: "CCFEX-COXINHA ASA INTERF. 15KG CS", tipo: "" },
+"197689": { produto: "MCFEX-MOELA 10X1KG LG", tipo: "" },
+"199906": { produto: "CCFEX-COXINHA ASA INTERF 16KG BRAS", tipo: "" },
+"200580": { produto: "MP-M.PEITO FILETADO 12,8MM IN NATURA UIC", tipo: "" },
+"205680": { produto: "CCFEX-COXA/SOB S/O 200G UP 12KG", tipo: "" },
+"206854": { produto: "FGO PAS(COX/SOB)TEMP 700G", tipo: "" },
+"206863": { produto: "CCFT-MEIO ASA TEMP 26X700G", tipo: "" },
+"206879": { produto: "CCFT-COXINHA ASA TEMP 26X700G", tipo: "" },
+"225282": { produto: "COXA INTERF 15KG OR MED", tipo: "" },
+"226375": { produto: "CCFEX-COXA/SOB S/O C/P 2X10KG CS", tipo: "" },
+"227487": { produto: "CCFEX-COXINHA ASA INTERF.15KG SINGAPURA", tipo: "" },
+"229642": { produto: "MCF-CORACAO TEMP CONG 26X700G", tipo: "" },
+"230002": { produto: "MCF-CORACAO 24X700G PCT MI", tipo: "" },
+"230026": { produto: "MCF-MOELA 24X700G PCT MI", tipo: "" },
+"234728": { produto: "CMS 1X15KG REP DOMINIC", tipo: "" },
+"237913": { produto: "MCFEX-MOELA 15X1KG KOSOVO", tipo: "" },
+"238337": { produto: "CMSEX-CARNE MEC.SEP.FGO 15KG MEX QUALTIA", tipo: "" },
+"238383": { produto: "FGO PASSAR IQF 2X7,5KG CS", tipo: "" },
+"239644": { produto: "MP-FILEZINHO SASS.CONG.7,5KG (UIA-UIC)", tipo: "" },
+"240472": { produto: "CCFEX-COXA/SOB S/O 280/320G 6X3KG CS", tipo: "" },
+"240480": { produto: "CCFEX-COXA/SOB S/O 320/360G 6X3KG CS", tipo: "" },
+"240493": { produto: "CCFEX-COXA/SOB S/O 360/400G 6X3KG CS", tipo: "" },
+"244046": { produto: "CCFEX-PELE DE AVES 1X15KG 12M", tipo: "" },
+"248694": { produto: "CRF-FILE PEITO RESF 280-330G 18KG MI", tipo: "" },
+"248705": { produto: "SASSAMI RESF 60-80G 18KG", tipo: "" },
+"248850": { produto: "COXA LAR INTERF 15KG JAP", tipo: "" },
+"249060": { produto: "FGO-AVE NATALINA LAR 5X3,6KG", tipo: "" },
+"253889": { produto: "FGO-FRANGO INTEIRO TEMP CONGELADO", tipo: "" },
+"258271": { produto: "CCFEX-COXA/SOB S/O BL1 160/180G 12KG LAR", tipo: "" },
+"258282": { produto: "CCFEX-COXA/SOB S/O BL4 220/240G 12KG LAR", tipo: "" },
+"258285": { produto: "CCFEX-COXA/SOB S/O BL5 240/260G 12KG LAR", tipo: "" },
+"258288": { produto: "CCFEX-COXA/SOB S/O BL6 260/280G 12KG LAR", tipo: "" },
+"258291": { produto: "CCFEX-COXA/SOB S/O BL7 280/300G 12KG LAR", tipo: "" },
+"259643": { produto: "CCFEX-COXA/SOB S/O BL8 200G 12KG TRAN JÃ•", tipo: "" },
+"260709": { produto: "MCF-FIGADO PET FOOD. 15KG MI", tipo: "" },
+"261342": { produto: "CRF-COXINHA ASA RESF 50-70G 18KG MI", tipo: "" },
+"265699": { produto: "CRF-COXA/SOB S/OSSO RESF 230-250G 1X18KG", tipo: "" },
+"271443": { produto: "CCFEX-COXA INTERF C/O C/P 10KG OR.MEDIO", tipo: "" },
+"272940": { produto: "CCF-COXINHA ASA CONG 50-70G 6X3KG OUTB", tipo: "" },
+"722841": { produto: "CCF-COXINHA ASA IQF 15X1KG MI", tipo: "" },
+"723167": { produto: "MP-CMS 15KG (UIA-UIC)", tipo: "" },
+"723170": { produto: "MP-PELE 15KG (UIA-UIC)", tipo: "" },
+"62990": { produto: "MCFEX-FIGADO C. HUMANO 15X1KG", tipo: "" },
+"84931": { produto: "MP-FILEZINHO SASSAMI LINGUICA FRANGO(UIA", tipo: "" },
+"140098": { produto: "MP-FILE PEITO CARNE MOIDA (UIA)", tipo: "" },
+"148411": { produto: "MP-CARNE MOIDA P/LINGUICA (UIA)", tipo: "" },
+"84930": { produto: "MP-MEIO PEITO LINGUICA DE FRANGO (UIA)", tipo: "" },
+"84933": { produto: "MP-COXA/SOBRECOXA LINGUICA FRANGO (UIA)", tipo: "" },
+"279299": { produto: "CCFEX-SOBRECOXA S/O S/P 6X2KG OR.MED.", tipo: "" },
+"53272": { produto: "CCFEX-COXA/SOB C/DORSO 15KG ARS", tipo: "" },
+"246260": { produto: "CCF-FILE PEITO CUBOS IQF 20X700G MI", tipo: "" },
+"299013": { produto: "CCFEX-COXA/SOB C/DORSO 3X5KG CUBA", tipo: "" },
+"297938": { produto: "SHAWARMA 4X2,5KG ARS", tipo: "" },
+"178554": { produto: "CRF-MEIO ASA RESF BDJ 24X600G MI", tipo: "" },
+"178557": { produto: "CRF-SOBRECOXA RESF BDJ 24X600G MI", tipo: "" },
+"178580": { produto: "CRF-FILE PEITO RESF BDJ 24X600G MI", tipo: "" },
+"178648": { produto: "CRF-MOELA RESF BDJ 24X600G MI", tipo: "" },
+"178651": { produto: "CRF-COXINHA ASA RESF BDJ 24X600G MI", tipo: "" },
+"179626": { produto: "CRF-COXA RESF BDJ 24X600G MI", tipo: "" },
+"179655": { produto: "CRF-CORACAO RESF BDJ 24X600G MI", tipo: "" },
+"179706": { produto: "CRF-FILE SASSAMI RESF BDJ 24X600G MI", tipo: "" },
+"49431": { produto: "CCFEX-COXA/SOB S/O S/P 5X2KG ARS", tipo: "" },
+"41991": { produto: "CCFEX-COXA/SOB IQF 6X2KG 12KG BC", tipo: "" },
+"846769": { produto: "MCFEX-MOELA PCT 15KG BC", tipo: "" },
+"663874": { produto: "MP-FILE INT S/CALIBRE (UIA-UIC)", tipo: "" },
+"847111": { produto: "MCFEX-FIGADO PCT 15KG BC", tipo: "" },
+"847425": { produto: "CCFEX-PES GRADE (B) 15KG 2X7.5KG AFR", tipo: "" },
+"19191": { produto: "CCF-PEITO C/DORSO INT 17KG MI", tipo: "" },
+"53738": { produto: "CCF-117121 FILE SASSAMI INT 18KG MI", tipo: "" },
+"54709": { produto: "CCF-FILE PEITO FIL INT 60-80 18KG MI", tipo: "" },
+"54710": { produto: "CCF-FILE PEITO FIL INT 100-120 18KG", tipo: "" },
+"60679": { produto: "CCF-FILE PEITO FILETADO INTERF HABIB'", tipo: "" },
+"849261": { produto: "MCFEX-MOELA PCT 15KG CH", tipo: "" },
+"41421": { produto: "CCFEX-KAKUGIRI BLK5 25/35G 12KG EVA", tipo: "" },
+"41420": { produto: "CCFEX-KAKUGIRI BLK4 20/30G 12KG EVA", tipo: "" },
+"19211": { produto: "CCFEX-KAKUGIRI BLK5 25/35G 12KG JA", tipo: "" },
+"41419": { produto: "CCFEX-KAKUGIRI BLK3 20/25G 12KG EVA", tipo: "" },
+"41424": { produto: "CCFEX-KAKUGIRI BLK9 25/30G 12KG EVA", tipo: "" },
+"41422": { produto: "CCFEX-KAKUGIRI BLK6 30/40G 12KG EVA", tipo: "" },
+"44229": { produto: "CCFSEX-M.PEITO IN 6X2KG EU TIMB", tipo: "" },
+"16291": { produto: "CCFEX-MPEITO S/O/P/F 6X2KG AFE", tipo: "" },
+"17104": { produto: "CCFEX-FILE S/T SUP 45G UP 712.50KG JB UE", tipo: "" },
+"16853": { produto: "CCFSEX-FILE 3 PARTES SAL 712.50 JB UE", tipo: "" },
+"16517": { produto: "CCFSEX-COXA/SOB S/O/P SAL CS1 1100KG", tipo: "" },
+"12686": { produto: "CCFEX-COXINHA ASA IQF 12X1KG 12KG JP", tipo: "" },
+"58315": { produto: "CMS-CARNE MEC SEP RESF 18KG MI", tipo: "" },
+"53127": { produto: "CRF-PEITO C/O PCT. RESF. 17KG MI", tipo: "" },
+"132748": { produto: "CRF- SOBRECOXA RESF BDJ 600-800G MI", tipo: "" },
+"132749": { produto: "CRF-COXA/SOB RESF BDJ 600-800G MI", tipo: "" },
+"132752": { produto: "CRF-PEITO C OSSO RESF BDJ 600- 800G MI", tipo: "" },
+"55668": { produto: "CRF-COXA/SOB. PCT. RESF. 18KG MI", tipo: "" },
+"55213": { produto: "CCF-PEITO C/O 18KG PCT MI", tipo: "" },
+"55214": { produto: "CCF-FILE PEITO FIL PCT 18KG MI", tipo: "" },
+"55208": { produto: "CCF-COXA/SOB.PCT.18KG MI", tipo: "" },
+"55211": { produto: "CCF-FILE PEITO PCT 18KG MI", tipo: "" },
+"55218": { produto: "MCF-CORACAO PCT. 36X500GR MI", tipo: "" },
+"55209": { produto: "CCF-SOBRECOXA PCT.18KG MI", tipo: "" },
+"55205": { produto: "CCF-ASA PCT 18KG MI", tipo: "" },
+"35121": { produto: "CCFEX-M.PEITO S/O/P/F 6X2KG LIB T.", tipo: "" },
+"55206": { produto: "CCF-COXINHA ASA PCT 18KG MI", tipo: "" },
+"57908": { produto: "CCF-COXA/SOB ENV 18KG MI", tipo: "" },
+"58092": { produto: "MCFEX-MOELA PCT 15KG PORTUGAL BUY ALL", tipo: "" },
+"58375": { produto: "MCFEX-MOELA PCT 15KG MILKY", tipo: "" },
+"55671": { produto: "CRF-PEITO C/O PCT. RESF. 18KG MI", tipo: "" },
+"54314": { produto: "CCF-FILE PEITO FIL.IQF 15X1KG MI", tipo: "" },
+"132731": { produto: "CRF-MEIO ASA RESF BDJ 400-600G MI", tipo: "" },
+"132740": { produto: "CRF-MOELA RESF BDJ 400-600G MI", tipo: "" },
+"132741": { produto: "CRF-FILE PEITO RESF BDJ 400-600G MI", tipo: "" },
+"132744": { produto: "CRF-COXINHA ASA RESF BDJ 400-600G MI", tipo: "" },
+"132746": { produto: "CRF-CORACAO RESF BDJ 400-600G MI", tipo: "" },
+"132747": { produto: "CRF-ASA RESF BDJ 600- 800G MI", tipo: "" },
+"132750": { produto: "CRF-FIGADO RESF BDJ 600-800G MI", tipo: "" },
+"132751": { produto: "CRF-FILE SASSAMI RESF BDJ 400-600G MI", tipo: "" },
+"58486": { produto: "CCF-FILE PEITO IQF 8X2KG MI", tipo: "" },
+"56696": { produto: "GCF-GORDURA DE AVES PCT 18KG MI", tipo: "" },
+"56695": { produto: "RCF-117105 RECORTE COXA/SOB PCT 18KG MI", tipo: "" },
+"59262": { produto: "CCF-FGO PASSARINHO (COX/SOB) IQF 8X2K", tipo: "" },
+"53924": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG", tipo: "" },
+"62931": { produto: "CCFEX-MEIO ASA IQF 12X1 LG", tipo: "" },
+"64314": { produto: "CCFT-FILE SASSAMI TEM PCT 18X1KG MI", tipo: "" },
+"60352": { produto: "MCFEX-MOELA PCT 15KG VANIBRU", tipo: "" },
+"60485": { produto: "MCFEX-FIGADO CONS HUM 15KG FERMATA", tipo: "" },
+"163618": { produto: "CCFEX-M PEITO 6X2KG JP EVA", tipo: "" },
+"163630": { produto: "CCFEX-M.PEITO INTERF 15KG JP EVA", tipo: "" },
+"40196": { produto: "CCFEX-M.PEITO 140G UP 712.50KG JB UE", tipo: "" },
+"71726": { produto: "CCF-COXA/SOB C/DORSO ENV. 20KG MI", tipo: "" },
+"71708": { produto: "CCF-COXA/SOB C/DORSO ENV. 20KG MI", tipo: "" },
+"71360": { produto: "CCFEX-COXINHA ASA 7,5KG RU", tipo: "" },
+"851068": { produto: "REFILE PEITO (MP EMP) 15KG", tipo: "" },
+"71382": { produto: "CCFEX-FILE SASSAMI S/T SUP 15KG LG", tipo: "" },
+"850991": { produto: "CCFEX-ASA/COXA/SOBRECOXA IQF PCT 12KG AF", tipo: "" },
+"61704": { produto: "CCF-COXA/SOB C/DORSO ENV 18KG MI", tipo: "" },
+"61708": { produto: "CCF-FILE DE PEITO ENV 18KG MI", tipo: "" },
+"71723": { produto: "CCF-PEITO C/DORSO ENV. 20KG MI", tipo: "" },
+"173771": { produto: "CCF-MEIO DAS ASAS IQF 20X700G MI", tipo: "" },
+"173838": { produto: "CCF-FGO PASSARINHO CX/SOB IQF 20X700G MI", tipo: "" },
+"62988": { produto: "CCFEX-COXA/SOB S/O S/P 12KG ARS", tipo: "" },
+"62991": { produto: "MCFEX-FIGADO C. HUMANO 15X1KG UE", tipo: "" },
+"63699": { produto: "CCF-COXINHA ASA ENV. 18KG MI", tipo: "" },
+"63729": { produto: "MCFEX-FIGADO C. HUMANO 15KG SC MONICARN", tipo: "" },
+"63994": { produto: "CCF-FILE PEITO FIL HAB 150-160G 12X1,5KG", tipo: "" },
+"64315": { produto: "CCFT-MEIO PEITO TEMP 18X1KG MI", tipo: "" },
+"64563": { produto: "CCF-FILE PEITO FIL ENVELOPADO 18KG MI", tipo: "" },
+"30552": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG KAM", tipo: "" },
+"182060": { produto: "CCFEX-M PEITO 16X1KG LG 12M", tipo: "" },
+"65768": { produto: "CCF-SAMBIQUIRA ENV 18KG MI", tipo: "" },
+"12166": { produto: "MCF-MOELA PCT.17KG MI", tipo: "" },
+"12205": { produto: "MCF-CORACAO PCT.17KG MI", tipo: "" },
+"31329": { produto: "CCFEX-M.PEITO 6X2KG ARS LISA", tipo: "" },
+"163656": { produto: "CCF-COXA/SOB CONG BDJ 16X700G", tipo: "" },
+"12182": { produto: "MCF-FIGADO PCT.17KG MI", tipo: "" },
+"59256": { produto: "CCF-FGO PASSARINHO (COX/SOB) IQF 15X1", tipo: "" },
+"84006": { produto: "CRF-FILE SASSAMI RESF BOLS TEMP 6X3 MI", tipo: "" },
+"84005": { produto: "CRF-FILE PEITO RESF TEMP BOLS 6X3 KG MI", tipo: "" },
+"84004": { produto: "CRF-MEIO ASA RESF TEMP BOLS 6X3KG MI", tipo: "" },
+"84003": { produto: "CRF-COXINHA ASA RESF TEMP BOLS 6X3KG MI", tipo: "" },
+"84919": { produto: "CRF-FGO PAS(COX/SOB) RESF TEMP 6X3KG MI", tipo: "" },
+"59652": { produto: "CCF-COXINHA ASA INSTITUCIONAL 20KG", tipo: "" },
+"25660": { produto: "CCFEX-M.PEITO INTERF 15KG AFEGAN", tipo: "" },
+"44230": { produto: "CCFEX-M.PEITO 6X2KG 12KG UE TIMB SAL", tipo: "" },
+"667825": { produto: "MP-M. PEITO INTEIRO S/C (UIA-UIC)", tipo: "" },
+"54773": { produto: "CCFEX-MEIO ASA IQF 12X1 12KG JP", tipo: "" },
+"18199": { produto: "CCFEX-PEITO C/FILE INTERF 16KG BC", tipo: "" },
+"11452": { produto: "CCFEX-MEIO ASA IQF 12X1 12KG HK", tipo: "" },
+"11947": { produto: "CCF-ASA PCT 17KG MI", tipo: "" },
+"45832": { produto: "MCFEX-MOELA PCT 15KG ROMENIA", tipo: "" },
+"47694": { produto: "CCFEX-M.PEITO 150/190G IQF AR", tipo: "" },
+"31619": { produto: "PCFEX-PELE DE AVES 2X7,5KG BC", tipo: "" },
+"77743": { produto: "CCFEX-COXA/SOB S/O/P 675KG JB RUS", tipo: "" },
+"47301": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG MACROME", tipo: "" },
+"55669": { produto: "CRF-M.PEITO RESF PCT 18KG MI", tipo: "" },
+"41423": { produto: "CCFEX-KAKUGIRI BLK8 40/50G 12KG EVA", tipo: "" },
+"19208": { produto: "CCFEX-KAKUGIRI BLK4 20/30G 12KG JA", tipo: "" },
+"226616": { produto: "MCFEX-FIGADO C.ANIMAL BLOCO 20KG", tipo: "" },
+"14753": { produto: "CCF-FGO PASSARINHO IQF 10X1KG MI", tipo: "" },
+"32413": { produto: "CCFEX-M.PEITO S/O/P/F 6X2KG LIB L.", tipo: "" },
+"32896": { produto: "MCFEX-MOELA PCT 15KG RU", tipo: "" },
+"93552": { produto: "CCFSEX-M.PEITO SAL HC 15KG UE UNIVERSAL", tipo: "" },
+"93707": { produto: "CCFSEX-M.PEITO SAL HC 15KG UE KUHNE", tipo: "" },
+"93706": { produto: "CCFSEX-M.PEITO SAL HC 15KG UE VESTEY", tipo: "" },
+"93708": { produto: "CCFSEX-M.PEITO SAL HC 15KG UE VRIESEKOOP", tipo: "" },
+"242076": { produto: "MP-MEIO PEITO P/CARNE MOIDA LING (UIA)", tipo: "" },
+"34515": { produto: "CCF-COXINHA ASA INTERF 17KG MI", tipo: "" },
+"666334": { produto: "CCF-ASA LAR INTERF 17KG MI", tipo: "" },
+"22364": { produto: "CCF-SOBRECOXA INTERF 17KG MI", tipo: "" },
+"34521": { produto: "CCF-COXA/SOB C/DORSO INT 15K MI", tipo: "" },
+"46497": { produto: "CCF-FILE COXA/SOB INTER 17KG MI", tipo: "" },
+"48699": { produto: "CCF-COXA INTERF 17KG MI", tipo: "" },
+"53737": { produto: "CCF-SOBRECOXA INTERF 18KG MI", tipo: "" },
+"56666": { produto: "CCF-COXA/SOB.INTERF. 17KG MI", tipo: "" },
+"56667": { produto: "CCF-COXA/SOB C/DORSO INT 17KG MI", tipo: "" },
+"58484": { produto: "CCF-COXA S/P INTERF 18KG MI", tipo: "" },
+"64719": { produto: "CCF-COXA/SOB C/DORSO/SAMBIQ. INT 17KG MI", tipo: "" },
+"91869": { produto: "CCFEX-M.PEITO INTERF 15KG CS", tipo: "" },
+"94415": { produto: "CCFEX-M.PEITO 675KG JB UE VESTEY UK", tipo: "" },
+"31286": { produto: "CCFEX-MEIO ASA INTERF. 30G UP 15KG HK", tipo: "" },
+"31299": { produto: "CCFEX-PONTA DA ASA 15KG HK", tipo: "" },
+"33116": { produto: "CCFEX-ASA INTERF 16KG (ESP)", tipo: "" },
+"44414": { produto: "CCFEX-MEIO ASA INT 30G+ 17KG CH OSI", tipo: "" },
+"48334": { produto: "CCFEX-MEIO ASA INTERF.30G + 15KG HK", tipo: "" },
+"72400": { produto: "CCFEX-MEIO ASA INT 32-45G 18KG CH", tipo: "" },
+"664475": { produto: "CCFEX-ASA INTERF 17KG CH", tipo: "" },
+"664488": { produto: "CCFEX-ASA INTERF 17KG HK", tipo: "" },
+"664527": { produto: "CCFEX-MEIO ASA INTERF 30G+ 17KG HK", tipo: "" },
+"665843": { produto: "CCFEX-ASA INTERF 15KG AF", tipo: "" },
+"847470": { produto: "CCFEX-MEIO ASA INT 30+ 17KG CH", tipo: "" },
+"30366": { produto: "CCFEX-COXA/SOB C/DORSO 15KG RU", tipo: "" },
+"32928": { produto: "CCFEX-SOBRECOXA S/O S/P 15KG ARS", tipo: "" },
+"42482": { produto: "CCFEX-COXA/SOB C/DORSO 15KG AF", tipo: "" },
+"48222": { produto: "CCFEX-COXA/SOB S/O C/P 15KG ARS", tipo: "" },
+"48225": { produto: "CCFEX-COXA/SOB S/O S/P 15KG ARS", tipo: "" },
+"48501": { produto: "CCFEX-COXA/SOB S/O S/P 15KG OM", tipo: "" },
+"58475": { produto: "CCFEX-COXA/SOB C/DORSO 15KG EU", tipo: "" },
+"59091": { produto: "CCFEX-COXA/SOB C/DORSO 16KG BC", tipo: "" },
+"69388": { produto: "CCFEX-COXA/SOB C/DORSO 15KG LG APOLO", tipo: "" },
+"85881": { produto: "CCFEX-COXA INTERF 5KG RU", tipo: "" },
+"85883": { produto: "CCFEX-COXA/SOB INTERF 15KG RU", tipo: "" },
+"85886": { produto: "CCFEX-SOBRECOXA INTERF 15KG RU", tipo: "" },
+"86585": { produto: "CCFEX-COXA/SOB S/O S/P LP 15KG RU", tipo: "" },
+"163639": { produto: "CCFEX-COXA/SOB INTERF 15KG JP EVA", tipo: "" },
+"163712": { produto: "CCFEX-COXA/SOB S/O C/P 15KG EVA JP", tipo: "" },
+"221610": { produto: "CCFEX-COXA/SOB S/O C/P HCLP 15KG 300G UP", tipo: "" },
+"94516": { produto: "CCFEX-M.PEITO 5X2KG 10KG LG TIMB", tipo: "" },
+"94512": { produto: "CCFEX-M.PEITO 5X2KG 10KG ARS TIMB", tipo: "" },
+"54407": { produto: "CRF-FILE SASSAMI RESF BOLSAO S/T 18KG MI", tipo: "" },
+"54794": { produto: "CCF-FILE COXA/SOBR. CONG. BOLSAO 18KG MI", tipo: "" },
+"55203": { produto: "CRF-PEITO C/O S/P RESF. BOLSAO 18KG MI", tipo: "" },
+"62804": { produto: "CRF-COXA RESF BOLSAO 18KG MI", tipo: "" },
+"62805": { produto: "CRF-ASA RESF BOLSAO 18KG MI", tipo: "" },
+"82256": { produto: "CRF-COXA RESF BOLSAO 18KG GPA MI", tipo: "" },
+"82261": { produto: "CRF-PEITO C/O RESF .BOLSAO 18KG GPA MI", tipo: "" },
+"178548": { produto: "CRF-FILE SASSAMI MADERO RESF BOLSAO 20KG", tipo: "" },
+"81486": { produto: "CRF-COXA RESF PCT 6X3KG MI", tipo: "" },
+"82250": { produto: "CRF-FILE PEITO RESF 6X3 PCT GPA MI", tipo: "" },
+"82252": { produto: "CRF-COXA/SOB RESF 6X3 PCT GPA MI", tipo: "" },
+"82253": { produto: "CRF-COXINHA ASA RESF 6X3 PCT GPA MI", tipo: "" },
+"82254": { produto: "CRF-SOBRECOXA RESF. PCT 6X3 GPA MI", tipo: "" },
+"82257": { produto: "CRF-FILE SASSAMI RESF. PCT 6X3 GPA MI", tipo: "" },
+"82258": { produto: "CRF-PEITO C/O RESF 6X3KG PCT GPA MI", tipo: "" },
+"82456": { produto: "CRF-FILE PEITO RESF FIL PCT 6X3KG MI", tipo: "" },
+"82461": { produto: "CRF-COXA/SOB S/O S/P RESF 6X3KG MI", tipo: "" },
+"82561": { produto: "CRF-COXA RESF GPA 6X3KG MI", tipo: "" },
+"85888": { produto: "CRF-CORACAO RESFRIADO 6X3KG MI", tipo: "" },
+"107427": { produto: "CRF-FIGADO RESF 6X3KG MI", tipo: "" },
+"62764": { produto: "CCFT-MEIO ASA TEMP PCT 18KG MI", tipo: "" },
+"107209": { produto: "CCF-FILE PEITO BOLSAO 18KG MI S/ANTIBIO", tipo: "" },
+"55219": { produto: "MCF-FIGADO PCT.18X1KG MI", tipo: "" },
+"179648": { produto: "CRF-COXA/SOB RESF BDJ 16X700G MI", tipo: "" },
+"44668": { produto: "CCFEX-COXA/SOB. S/O 220GR UP 2X7,5KG UE", tipo: "" },
+"42071": { produto: "CCFEX-FGO A PASSARINHO PCT 12KG BC", tipo: "" },
+"258274": { produto: "CCFEX-COXA/SOB S/O BL2 180/200G 12KG LAR", tipo: "" },
+"258277": { produto: "CCFEX-COXA/SOB S/O BL3 200/220G 12KG LAR", tipo: "" },
+"94985": { produto: "MCFEX-FIGADO CONS HUM C GRUIA 16X1 NOVO", tipo: "" },
+"203889": { produto: "CCF-CORACAO CONG BDJ 16X1KG MI", tipo: "" },
+"28041": { produto: "CCFEX-COXINHA ASA IQF 12X1KG 12KG AFR", tipo: "" },
+"664530": { produto: "CCFEX-PONTA DA ASA 17KG HK", tipo: "" },
+"669946": { produto: "CCFSEX-M.PEITO SAL 130/150G 6X2KG UE", tipo: "" },
+"48226": { produto: "CCFEX-COXA/SOB S/O S/P 12KG ARS", tipo: "" },
+"44008": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE AVES 15K UAE", tipo: "" },
+"273234": { produto: "CCFEX-M.PEITO 6X2KG REINO UNIDO", tipo: "" },
+"273239": { produto: "CCFEX-M.PEITO 90X7,5KG 675KG REINO UNIDO", tipo: "" },
+"48223": { produto: "CCFEX-COXA/SOB S/O C/P 12KG ARS", tipo: "" },
+"273591": { produto: "CCFEX-M.PEITO HCLP 15KG REINO UNIDO", tipo: "" },
+"271131": { produto: "CCF-DORSO CONG BLOCO BOLSAO 15KG", tipo: "" },
+"17967": { produto: "CCFEX-CARTILAGEM PEITO PCT 10KG (ARG)", tipo: "" },
+"83902": { produto: "CCF-SOBRECOXA IQF 8X2KG MI", tipo: "" },
+"16036": { produto: "RCF-RECORTE DE COXA/SOB PCT 15KG MI", tipo: "" },
+"96724": { produto: "CRF-PEITO S/O/P/S ENV RESF AKILA 18KG MI", tipo: "" },
+"278264": { produto: "CCFEX-M PEITO 6X2KG EVA COR.S.", tipo: "" },
+"39026": { produto: "MCFEX-FIGADO CONS HUM 15KG FLORELIA", tipo: "" },
+"29480": { produto: "CCFEX-M.PEITO 6X2KG 12KG MCD", tipo: "" },
+"278717": { produto: "CCFEX-COXA IQF 1X12KG BC ESP", tipo: "" },
+"278687": { produto: "CCFEX-COXINHA ASA IQF 1X12KG BC ESP", tipo: "" },
+"285279": { produto: "CCFEX-COXA/SOB C/DORSO BLOCO 10KG LG", tipo: "" },
+"279250": { produto: "CCFEX-CANELA TOR/PATA FGO 1X15KG CH", tipo: "" },
+"173850": { produto: "CCF-FILE COXA/SOB IQF 20X700G MI", tipo: "" },
+"163679": { produto: "CCF-SOBRECOXA CONG BDJ 24X600G MI", tipo: "" },
+"163683": { produto: "CCF-MOELA CONG BDJ 24X600G", tipo: "" },
+"163687": { produto: "CCF-CORACAO CONG BDJ 24X600G", tipo: "" },
+"163693": { produto: "CCF-MEIO ASA CONG BDJ 600G MI", tipo: "" },
+"163697": { produto: "CCF-COXINHA ASA CONG BDJ 24X600G", tipo: "" },
+"163703": { produto: "CCF-FILE PEITO CONG BDJ 24X600G", tipo: "" },
+"163708": { produto: "CCF-FILE SASSAMI CONG BDJ 24X600G", tipo: "" },
+"62897": { produto: "CCFEX-MEIO ASA IQF 12X1 12KG CH", tipo: "" },
+"203907": { produto: "CCF-FILE SASSAMI CONG BDJ 16X1KG MI", tipo: "" },
+"203885": { produto: "CCF-FILE PEITO CONG BDJ 14X1KG MI", tipo: "" },
+"203892": { produto: "CCF-COXINHA ASA CONG BDJ 16X1KG MI", tipo: "" },
+"55675": { produto: "CCF-FILE SASSAMI IQF 8X2KG MI", tipo: "" },
+"28394": { produto: "CCFEX-MEIO ASA 30GR UP 6X2KG 12KG SI", tipo: "" },
+"292105": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG MEX", tipo: "" },
+"253387": { produto: "CCFT-MEIO ASA TEMP IQF 20X700G", tipo: "" },
+"253396": { produto: "CCFT-COXINHA ASA TEMP IQF 20X700G", tipo: "" },
+"253411": { produto: "CCFT-FGO PASS TEMP IQF 20X700G", tipo: "" },
+"253416": { produto: "CCFT-FILE SASSAMI TEMP IQF 20X700G", tipo: "" },
+"17200": { produto: "MCFEX-MOELA PCT 15KG HK", tipo: "" },
+"289555": { produto: "FGO-AVE NATALINA FRIMESA TEMPERADA", tipo: "" },
+"291081": { produto: "CCFT-FILE COXA/SOB TEMP IQF 20X700G", tipo: "" },
+"291074": { produto: "CCFT-SOBRECOXA TEMP IQF 20X700G", tipo: "" },
+"203898": { produto: "CCF-COXA/SOB CONG BDJ 12X1KG MI", tipo: "" },
+"200676": { produto: "CCFEX-COXA/SOB PORC DORS E SAMB 15KG RU", tipo: "" },
+"847441": { produto: "CCFSEX-COXA/SOB S/O/CAL SAL 712.50KG JB", tipo: "" },
+"147054": { produto: "CCFEX-ASA INTERF.15KG LG", tipo: "" },
+"76197": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG LG", tipo: "" },
+"77121": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG PE", tipo: "" },
+"77122": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG PE", tipo: "" },
+"84838": { produto: "CMSEX-CARNE MEC.SEP.CONG.DE FGO 15KG PE", tipo: "" },
+"55672": { produto: "CCF-FGO PASSARINHO IQF 8X2KG MI", tipo: "" },
+"254001": { produto: "CCF-COXINHA ASA REGINA CONG BDJ 16X1KG", tipo: "" },
+"254006": { produto: "CCF-FILE SASSAMI REGINA CONG BDJ 16X1KG", tipo: "" },
+"254010": { produto: "CCF-COXA/SOB REGINA CONG BDJ 12X1KG MI", tipo: "" },
+"254012": { produto: "CCF-FILE PEITO REGINA CONG BDJ 14X1KG", tipo: "" },
+"188991": { produto: "CCFEX-COXA BDJ 900G OR MEDIO", tipo: "" },
+"294731": { produto: "CCF-COXINHA ASA CONG 50-70G 6X2KG OUTB", tipo: "" },
+"294211": { produto: "FGO-AVE NATALINA RECHEADA LAR", tipo: "" },
+"100009": { produto: "MCFEX-FIGADO C. HUMANO 15X1KG AF", tipo: "" },
+"297989": { produto: "CCFEX-COXA/SOB S/O C/P MEX 15KG", tipo: "" },
+"298217": { produto: "CRF-PEITO S/O/P RESF BOLSAO 18KG M", tipo: "" },
+"294001": { produto: "CCF-FILE SASSAMI BLOCO 3X6KG MI", tipo: "" },
+"131921": { produto: "CCFEX-COXA/SOB INTERF 4C 15KG", tipo: "" },
+"41426": { produto: "CCFEX-KAKUGIRI BLK12 10/15G 12KG EVA", tipo: "" },
+"293432": { produto: "CCF-FGO PASSARINHO IQF PRIMATO 15X1KG", tipo: "" },
+"293283": { produto: "CCF-COXINHA ASA IQF PRIMATO 15X1KG MI", tipo: "" },
+"293394": { produto: "CCF-FILE COXA/SOB IQF PRIMATO 15X1KG MI", tipo: "" },
+"293466": { produto: "CCF-FILEZINHO SASSAMI IQF PRIM 15X1KG MI", tipo: "" },
+"100278": { produto: "CCFEX-COXA/SOB S/O S/P 12KG EVA", tipo: "" },
+"19143": { produto: "CCFEX-CARTILAGEM DE PEITO 12KG JA", tipo: "" },
+"262666": { produto: "CCF-FILE COXA/SOB S/O BDJ CONG 14X1KG", tipo: "" },
+"19156": { produto: "CCFEX-CARTILAGEM COXA 6X2KG JP", tipo: "" },
+"300969": { produto: "SHAWARMA BOLSAO 15KG ARS", tipo: "" },
+"31215": { produto: "CCFEX-CARTILAGEM PEITO PCT 10KG PALLETS", tipo: "" },
+"300974": { produto: "CCFEX-M.PEITO S/O S/P BOLSAO 15KG ARS", tipo: "" },
+"177953": { produto: "CCFEX-M PEITO IQF 6X2,5KG SU", tipo: "" },
+"136953": { produto: "CCFEX-DORSO 15KG", tipo: "" },
+"301643": { produto: "CCFEX-COXA INTERF C/O C/P 10KG AFRICA", tipo: "" },
+"300486": { produto: "CCFEX-PEITO COM OSSO INTERF 15KG OM 12", tipo: "" },
+"49931": { produto: "CCFSEX-M.PEITO SAL 200G DOWN 712.50KG JB", tipo: "" },
+"297980": { produto: "SHAWARMA INTERF 15KG ARS", tipo: "" },
+"288642": { produto: "SHAWARMA 4X2,5KG LG", tipo: "" },
+"171439": { produto: "MP-FILE S/CALIBRE RESFRIADO 20KG UIA", tipo: "" },
+"849258": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG SC ROME", tipo: "" },
+"30465": { produto: "CCFSEX-M.PEITO SAL 140G UP 712.50KG JB", tipo: "" },
+"851893": { produto: "CCFEX-COXA IQF GOLDEN PHOENIX 12X1KG AF", tipo: "" },
+"723701": { produto: "CCFEX-M PEITO MAR IQF 160/210G 10KG AR", tipo: "" },
+"41417": { produto: "CCFEX-KAKUGIRI BLK1 15/20G 12KG EVA", tipo: "" },
+"43093": { produto: "CCFEX-COXA/SOB S/O/P CS2 1100KG", tipo: "" },
+"29260": { produto: "CCFEX-M.PEITO 6X2KG 12KG CRO", tipo: "" },
+"106356": { produto: "CCFEX-FILE SASSAMI 6X2KG SI", tipo: "" },
+"47512": { produto: "CCFEX-FILE SASSAMI S/T SUP 15KG ARS", tipo: "" },
+"41427": { produto: "CCFEX-KAKUGIRI BLK11 5/10G 12KG EVA", tipo: "" },
+"107425": { produto: "MCF-FIGADO PET FOOD. 20KG MI", tipo: "" },
+"108394": { produto: "CCFEX-M.PEITO INTERF 15KG OMAN 12M", tipo: "" },
+"31457": { produto: "CCFSEX-M.PEITO SAL 140G UP 15KG UE", tipo: "" },
+"10952": { produto: "CCF-PEITO ISCAS PCT 7,5KG MI", tipo: "" },
+"44981": { produto: "CCF-MEIO PEITO PCT 15KG MI", tipo: "" },
+"12098": { produto: "CCF-PEITO C/O 17KG PCT MI", tipo: "" },
+"12685": { produto: "CCFEX-MEIO ASA IQF 6X2KG 12KG JP", tipo: "" },
+"55674": { produto: "CCF-COXINHA ASA IQF 8X2KG MI", tipo: "" },
+"32159": { produto: "CCFEX-PES GRADE (B) 2X7.5KG 15KG AF", tipo: "" },
+"38988": { produto: "CCFEX-PES GRADE (B) 1X15KG HK", tipo: "" },
+"115864": { produto: "CCF-FILE COXA/SOB C/PELE ENV.20KG", tipo: "" },
+"50878": { produto: "CCF-MEIO DAS ASAS IQF QUALITA 15X1KG MI", tipo: "" },
+"666729": { produto: "CCFSEX-M.PEITO SAL 712.50KG JB UE", tipo: "" },
+"23876": { produto: "CCFEX-M.PEITO S/O/P/F 6X2KG 12KG AFR", tipo: "" },
+"668578": { produto: "CCFEX-PELE BC JUMBO 712,5KG ESP", tipo: "" },
+"31930": { produto: "CCFEX-FILE SASSAMI S/T SUP 675KG JB UE", tipo: "" },
+"119466": { produto: "MCFEX-FIGADO C. ANIMAL JUMBO 675 KG", tipo: "" },
+"849559": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG VIVECTA", tipo: "" },
+"19567": { produto: "CCFSEX-FILE S/T SUP 712.50KG JB UE", tipo: "" },
+"82262": { produto: "CRF-COXINHA ASA ENV. RESF. 18KG GPA M", tipo: "" },
+"664828": { produto: "CCFEX-PONTA DA ASA 17KG CH", tipo: "" },
+"10496": { produto: "CCFEX-M.PEITO S/O/P/C/V 6X2KG 12KG UE", tipo: "" },
+"55215": { produto: "CCF-SAMBIQUIRA PCT 18KG MI", tipo: "" },
+"848961": { produto: "CCFSEX-FILE SASS C/T SALG 712.50KG U.E.", tipo: "" },
+"124091": { produto: "CCF-COXINHA ASA GREAT VALUE IQF 15X1KG", tipo: "" },
+"124092": { produto: "CCF-MEIO DAS ASAS GREAT VALUE IQF 15X1KG", tipo: "" },
+"124093": { produto: "CCF-COXA GREAT VALUE IQF 15X1KG", tipo: "" },
+"124094": { produto: "CCF-FGO PASSARINHO GREAT VALUE IQF15X1KG", tipo: "" },
+"124095": { produto: "CCF-SOBRECOXA GREAT VALUE IQF 15X1KG", tipo: "" },
+"124097": { produto: "CCF-FILE PEITO GREAT VALUE IQF 15X1KG", tipo: "" },
+"124098": { produto: "CCF-FILE SASSAMI GREAT VALUE IQF 15X1KG", tipo: "" },
+"126949": { produto: "CCF-PEITO C/O 2KG PADRAO", tipo: "" },
+"126954": { produto: "CCF-SOBRECOXA 2KG PADRAO", tipo: "" },
+"126962": { produto: "CCF-SASSAMI 10X2KG PADRAO", tipo: "" },
+"126975": { produto: "CCF-FILE PEITO PADRAO 10X2KG", tipo: "" },
+"126977": { produto: "CCF-FILE COXA/SOB 10X2KG PADRAO", tipo: "" },
+"126978": { produto: "CCF-COXINHA ASA 2KG PADRAO", tipo: "" },
+"126979": { produto: "CCF-COXA 2KG PADRAO", tipo: "" },
+"138491": { produto: "CCFEX-RECORTE DE PEITO 15KG EU", tipo: "" },
+"126980": { produto: "CCF-COXA/SOBRECOXA 2KG PADRAO", tipo: "" },
+"46217": { produto: "CCFEX-M.PEITO 6X2KG ARS TIM", tipo: "" },
+"11910": { produto: "CCFEX-M.PEITO IQF 4X2.5KG UE 140G UP", tipo: "" },
+"12030": { produto: "CCF-COXA/SOB.PCT.17KG MI", tipo: "" },
+"42026": { produto: "CCFEX-PEITO S/O/P 300/400 16KG BC", tipo: "" },
+"849449": { produto: "CCFSEX-MPEITO S/O/P/F IQF SAL120/200 2X6", tipo: "" },
+"42796": { produto: "CCFEX-KAKUGIRI BLK8 40/50G 12KG JA", tipo: "" },
+"16023": { produto: "RCF-RECORTE DE PEITO PCT 15KG MI", tipo: "" },
+"93555": { produto: "MP-RECORTE DE COXA LINGUICA FRANGO (UIA)", tipo: "" },
+"723183": { produto: "MP-RECORTE PEITO 15KG (UIA-UIC)", tipo: "" },
+"851071": { produto: "RBC-REFILE COXA (BAADER)15KG P5(UIA-UIC)", tipo: "" },
+"33518": { produto: "CCFEX-PES 1X15KG CH", tipo: "" },
+"43287": { produto: "CCFEX-COXA/SOB S/O 200GR UP 12KG JP", tipo: "" },
+"51104": { produto: "CCF-FILE PEITO FIL.PCT 17X1KG MI", tipo: "" },
+"11503": { produto: "CCFEX-M.PEITO S/O/P/F IQF 180G 2X6KG UE", tipo: "" },
+"19224": { produto: "CCFEX-COXA/SOB.200+ 12KG HK", tipo: "" },
+"23257": { produto: "RBC-REFILE COXA (BAADER)15KG P5 PRE(UIA", tipo: "" },
+"15721": { produto: "CCFEX-MEIO ASA IQF 12X1 12KG CH", tipo: "" },
+"846840": { produto: "CCFSEX-M PEITO TUM SAL IQF 150/190 4X2,5", tipo: "" },
+"45993": { produto: "MCFEX-FIGADO CONS HUM C GRUIA 16X1", tipo: "" },
+"64171": { produto: "CCFEX-PELE DE AVES 15KG ARS", tipo: "" },
+"849423": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG ARTICA", tipo: "" },
+"48502": { produto: "CCFEX-COXA/SOB S/O S/P 12KG OM", tipo: "" },
+"73560": { produto: "CCF-FILEZINHO SASSAMI S/T SUP 675KG RU", tipo: "" },
+"664420": { produto: "CCFEX-PELE DE AVES JUMBO 712,5KG DUBAI", tipo: "" },
+"51105": { produto: "CCF-FILE PEITO FIL.INTER 17KG MI", tipo: "" },
+"47076": { produto: "RCFEX-RECORTE DE PEITO 712.50KG JB UE", tipo: "" },
+"74002": { produto: "CCFEX-COXA/SOB S/O S/P 6X2KG RU", tipo: "" },
+"62933": { produto: "CCFEX-COXA/SOB S/O C/P 12KG ARS", tipo: "" },
+"722676": { produto: "CCFEX-FILE C/T 712.50KG JB UE", tipo: "" },
+"39466": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG LAICOM", tipo: "" },
+"49883": { produto: "RCFEX-RECORTE DE PEITO 712.50KG JB AF", tipo: "" },
+"848929": { produto: "CCFEX-PES SEM CALIBRE 1X15KG HK", tipo: "" },
+"32661": { produto: "CCF-FILE SASSAMI S/TENDAO PCT 17KG MI", tipo: "" },
+"55212": { produto: "CCF-PEITO S/O/P PCT 18KG MI", tipo: "" },
+"58091": { produto: "MCFEX-MOELA PCT 15KG VIVECTA", tipo: "" },
+"57865": { produto: "CCFEX-PEITO S/O/P S/F 12X1KG BC IQF", tipo: "" },
+"661889": { produto: "CCFEX-RECORTE COXA 15KG ESP", tipo: "" },
+"661892": { produto: "PCFEX-PELE DE AVES 15KG BC", tipo: "" },
+"661876": { produto: "RCFEX-RECORTE DE PEITO 15KG BC", tipo: "" },
+"44852": { produto: "CCFEX-M.PEITO 6X2KG 12KG JP", tipo: "" },
+"62457": { produto: "CCF-SASSAMI ENV 18KG MI", tipo: "" },
+"32897": { produto: "MCFEX-FIGADO CONSUMO HUMANO 15KG RU", tipo: "" },
+"45432": { produto: "CCF-PETISCO PEITO C/O JOG IQF 10X1KG MI", tipo: "" },
+"56590": { produto: "CCF-FILE COXA/SOB PCT 6X2 MI", tipo: "" },
+"47665": { produto: "CCFEX-PONTA DA ASA 15KG CH", tipo: "" },
+"31171": { produto: "CCF-ASAS IQF 10X1KG MI", tipo: "" },
+"62936": { produto: "CCF-SOBRECOXA ENV 18KG MI", tipo: "" },
+"27553": { produto: "CCFEX-M PEITO 140G UP 6X2KG UE", tipo: "" },
+"41418": { produto: "CCFEX-KAKUGIRI BLK2 15/25G 12KG EVA", tipo: "" },
+"46496": { produto: "CCF-FILE COXA/SOB PCT 17 KG MI", tipo: "" },
+"663227": { produto: "CCFEX-RECORTE DE PEITO JUMBO DUBAI", tipo: "" },
+"41425": { produto: "CCFEX-KAKUGIRI BLK10 23/27G 12KG EVA", tipo: "" },
+"849410": { produto: "CCFSEX-M.PEITO SAL 140G UP 6X2KG UE", tipo: "" },
+"23343": { produto: "CCFEX-COXA/SOB S/O/P 6X2KG 12KG UEA", tipo: "" },
+"45146": { produto: "CCFEX-MEIO ASA 40GR UP 6X2KG 12KG JA", tipo: "" },
+"850331": { produto: "CCFEX-KAKUGIRI BLK12 10/15G 12KG JA", tipo: "" },
+"664446": { produto: "CCFEX-PELE DE AVES JUMBO 675KG AFRICA", tipo: "" },
+"11918": { produto: "FCC-FRANGO CARCACA PCT.17KG", tipo: "" },
+"16049": { produto: "GCF-GORDURA DE AVES PCT 15KG MI", tipo: "" },
+"19401": { produto: "CCF-PEITO C/DORSO PC 12KG MI", tipo: "" },
+"850328": { produto: "CCF-KAKUGIRI BLK11 05/10G 12KG", tipo: "" },
+"669276": { produto: "CCFSEX-M.PEITO SAL 6X2KG EU", tipo: "" },
+"51103": { produto: "CCF-FILE PEITO FIL IQF 10X1KG MI", tipo: "" },
+"45285": { produto: "MCFEX-MOELA PCT 15 AF", tipo: "" },
+"665827": { produto: "CCFEX-M.PEITO S/F 712.50KG JB", tipo: "" },
+"148309": { produto: "CCF-SOBRECOXA TEMP. ASSA FACIL 20X800G", tipo: "" },
+"148296": { produto: "CCF-MEIO ASA TEMP. ASSA FACIL 20X800G", tipo: "" },
+"148308": { produto: "CCF-COXA TEMP. ASSA FACIL 20X800G", tipo: "" },
+"148303": { produto: "CCF-FILE PEITO TEMP. ASSA FACIL 20X800G", tipo: "" },
+"148306": { produto: "CCF-COXINHA ASA TEMP.ASSA FACIL 20X800G", tipo: "" },
+"22896": { produto: "RBP-REFILE PEITO (BAADER) 15KG P5 UIC", tipo: "" },
+"28578": { produto: "CCFEX-PES PET FOOD 1X15KG HK", tipo: "" },
+"666651": { produto: "MCFEX-FIGADO C.HUMANO 15X1KG AFR", tipo: "" },
+"666826": { produto: "CCFEX-M.PEITO 6X2KG 12KG UE", tipo: "" },
+"667016": { produto: "CCFEX-KAKUGIRI BLK10 23/27G 12KG JA", tipo: "" },
+"12137": { produto: "CMS-CARNE MEC SEP 15KG MI", tipo: "" },
+"16868": { produto: "CCFEX-M.PEITO 120UP 712.50KG JB UE", tipo: "" },
+"155155": { produto: "CRF-FILE PEITO CURRY 20X700G", tipo: "" },
+"155156": { produto: "CRF-FILE PEITO MOSTARDA 20X700G", tipo: "" },
+"155167": { produto: "CRF-MEIO ASA CURRY 20X700G", tipo: "" },
+"155168": { produto: "CRF-MEIO ASA MOSTARDA 20X700G", tipo: "" },
+"155157": { produto: "CRF-FILE PEITO PICANTE 20X700G", tipo: "" },
+"155189": { produto: "CRF-FGO PASSAR PICANTE 20X700G", tipo: "" },
+"155177": { produto: "CRF-SOBRECOXA PICANTE 20X700G", tipo: "" },
+"155169": { produto: "CRF-MEIO ASA PICANTE 20X700G", tipo: "" },
+"155186": { produto: "CRF-FGO PASSAR CURRY 20X700G", tipo: "" },
+"155187": { produto: "CRF-FGO PASSAR MOSTARDA 20X700G", tipo: "" },
+"155172": { produto: "CRF-SOBRECOXA CURRY 20X700G", tipo: "" },
+"155173": { produto: "CRF-SOBRECOXA MOSTARDA 20X700G", tipo: "" },
+"155180": { produto: "CRF-COXA CURRY 20X700G", tipo: "" },
+"155183": { produto: "CRF-COXA MOSTARDA 20X700G", tipo: "" },
+"18185": { produto: "MCFEX-MOELA PCT 15KG ROM", tipo: "" },
+"155161": { produto: "CRF-COXINHA ASA CURRY 20X700G", tipo: "" },
+"155163": { produto: "CRF-COXINHA ASA MOSTARDA 20X700G", tipo: "" },
+"155184": { produto: "CRF-COXA PICANTE 20X700G", tipo: "" },
+"155164": { produto: "CRF-COXINHA ASA PICANTE 20X700G", tipo: "" },
+"48503": { produto: "CCFEX-COXA/SOB S/O S/P 12KG OM", tipo: "" },
+"846785": { produto: "MP-M PEITO MISTO S/CALIBRE (UIA-UIC)", tipo: "" },
+"119714": { produto: "CCFEX-COXINHA ASA INTERF 15KG MEX", tipo: "" },
+"299212": { produto: "CCFEX-M.PEITO S/O S/P IQF 12KG MEX", tipo: "" },
+"62762": { produto: "CCFT-COXINHA ASA TEMP PCT 18KG MI", tipo: "" },
+"41988": { produto: "CCFEX-COXA/SOB.A VACUO 2KG BC", tipo: "" },
+"42068": { produto: "CCFEX-MEIO ASA PCT. 12KG BC", tipo: "" },
+"180243": { produto: "CRF-FILE PEITO RESF BOLSAO CVALE 18KG", tipo: "" },
+"64316": { produto: "CCF-FGO PASS(COX/SOB) TEMP PCT 18X1KG MI", tipo: "" },
+"16511": { produto: "CCFSEX-M.PEITO S/O/P/F SAL MP3 1100KG UE", tipo: "" },
+"118411": { produto: "MP-CARNE MOIDA P/LINGUICA (UIA)", tipo: "" },
+"84252": { produto: "CCF-COXINHA ASA IQF ENV 15X1KG MI", tipo: "" },
+"157545": { produto: "CRF-SOBRECOXA ENV RESF 18KG MI", tipo: "" },
+"47584": { produto: "CCFEX-PEITO S/O/P/F MP1 1000 KG", tipo: "" },
+"47678": { produto: "CCFEX-PES GRADE (B) 1X15KG 15KG CH", tipo: "" },
+"48020": { produto: "CCFEX-PATAS GRADE (A) 2X10 20KG CH", tipo: "" },
+"48972": { produto: "MCF-CORACAO PCT. 34X500GR MI", tipo: "" },
+"109214": { produto: "PEITO BOLSAO IN-NATURA", tipo: "" },
+"109215": { produto: "PEITO BOLSAO SALGADO", tipo: "" },
+"47057": { produto: "COXA E SOBRE COXA 280 UP 15KG CVALE", tipo: "" },
+"35059": { produto: "CMSEX-CARNE MEC SEP 15KG (ROBO)", tipo: "" },
+"55670": { produto: "CRF-COXINHA ASA PCT. RESF. 18KG MI", tipo: "" },
+"16516": { produto: "CCFEX-M.PEITO S/O/P/F MP7 1100KG", tipo: "" },
+"49734": { produto: "COXA/SOBRECOXA BLK 12KG MI", tipo: "" },
+"189267": { produto: "CCFEX-COXA/SOB S/O BL4 220/240G 12KG", tipo: "" },
+"139819": { produto: "CCF-FILE COXA/SOB 6X2KG", tipo: "" },
+"163465": { produto: "MP-VISCERAS IN NATURA (UIA)", tipo: "" },
+"167170": { produto: "CCFEX-M.PEITO 675KG JB UE GRADE B", tipo: "" },
+"166552": { produto: "CRF-CORACAO TEMP RESF BD 500G", tipo: "" },
+"163644": { produto: "CCFEX-COXA/SOB S/O C/P 4X4KG CS", tipo: "" },
+"170093": { produto: "MCF-CORACAO CONG.9X2KG MI", tipo: "" },
+"171452": { produto: "CRF-FILE PEITO RESF BOLSAO CX 18KG MI", tipo: "" },
+"163665": { produto: "CCF-COXA CONG BDJ 600G MI", tipo: "" },
+"84896": { produto: "MP-COXAS/SOBRECOXAS LINGUICA DE FRANGO", tipo: "" },
+"140521": { produto: "MP-FILE PEITO CARNE MOIDA", tipo: "" },
+"148410": { produto: "MP-CARNE MOIDA PARA LINGUICA", tipo: "" },
+"79855": { produto: "CCFT-FGO PAS(COX/SOB) TEMP PCT 20X1KG", tipo: "" },
+"177395": { produto: "CCFEX-COXA IQF 12X1KG CH", tipo: "" },
+"189013": { produto: "CARNE MOIDA DE AVES ME", tipo: "" },
+"183926": { produto: "MP-FILE S/CALIBRE CONGELADO 15KG P/ UIC", tipo: "" },
+"197697": { produto: "MCFEX-MOELA 15KG PET FOOD", tipo: "" },
+"205664": { produto: "MP-DESCARTE POR CONDENA (UIA)", tipo: "" },
+"67838": { produto: "CCF-COXA/SOB C/DORSO INT 18KG MI", tipo: "" },
+"84895": { produto: "MP-FILEZINHO SASSAMI LINGUICA DE FRANGO", tipo: "" },
+"225446": { produto: "MP-FILE SASSAMI REDESTINADO (UIA-UIC)", tipo: "" },
+"225447": { produto: "MP - PERNA S/O REDESTINADO (UIA-UIC)", tipo: "" },
+"225448": { produto: "MP-M.PEITO REDESTINADO (UIA-UIC)", tipo: "" },
+"189298": { produto: "CCFEX-COP CX/SOB S/O CG 200-220G 12 KG", tipo: "" },
+"285761": { produto: "CCFEX-COXA/SOB C/DORSO INT 10KG OR MEDIO", tipo: "" },
+"303566": { produto: "CCF-SOBRECOXA S/O S/P 6X2KG MI", tipo: "" },
+"303061": { produto: "CCFEX-COXA/SOB S/O C/P 6X2KG MACEDONIA", tipo: "" },
+"133484": { produto: "CCFEX-M.PEITO 6X2KG 12KG AR", tipo: "" },
+"303729": { produto: "CCFEX-CARTILAGEM PEITO JP 10X1KG", tipo: "" },
+"301141": { produto: "CCFEX-COXIN/MEIO ASA INTERF 15KG MEX", tipo: "" },
+"295600": { produto: "SHAWARMA 6X2,5KG MI", tipo: "" },
+"302728": { produto: "CCF-COXA IQF NATTO 15X1KG", tipo: "" },
+"302709": { produto: "CCF-SOBRECOXA IQF NATTO 15X1KG", tipo: "" },
+"302704": { produto: "CCF-FILE SASSAMI IQF NATTO 15X1KG", tipo: "" },
+"302679": { produto: "CCF-FILE PEITO IQF NATTO 15X1KG", tipo: "" },
+"303007": { produto: "CCFEX-COXA IQF 12X1KG", tipo: "" },
+"303026": { produto: "CCFEX-SOBRECOXA IQF 12X1KG", tipo: "" },
+"16997": { produto: "CCFEX-ASA INTERF 15KG HK", tipo: "" },
+"306934": { produto: "CCFEX-COXA/SOB C/DORSO 15KG OM", tipo: "" },
+"307514": { produto: "SHAWARMA 4X2,5KG JORDANIA", tipo: "" },
+"309689": { produto: "CCFEX-M.PEITO 4X2,5KG 10KG ARS TIMB", tipo: "" },
+"292619": { produto: "CCF-COXINHA ASA 6X2KG MI", tipo: "" },
+"292616": { produto: "CCF-FILE COXA/SOB 6X2KG MI", tipo: "" },
+"292594": { produto: "CCF-FILE SASSAMI 6X2KG MI", tipo: "" },
+"292563": { produto: "CCF-FILE PEITO BUTTERFLY 6X2KG MI", tipo: "" },
+"313505": { produto: "SHAWARMA BOLSAO 15KG LG", tipo: "" },
+"119714" : { produto: "CCFEX-COXINHA ASA INTERF 15KG MEX", tipo: "" }
+
+    // 👉 continue adicionando aqui os códigos do seu PDF
+};
+
+// Quando o código for digitado, preenche produto e tipo automaticamente
+document.getElementById('codigo').addEventListener('input', function () {
+    const codigo = this.value.trim().toUpperCase();
+    const dados = produtosPorCodigo[codigo];
+
+    if (dados) {
+        document.getElementById('produto').value = dados.produto || '';
+        document.getElementById('tipo').value = dados.tipo || '';
+    }
+});
+
+
+async function excluirRegistro(id) {
+    if (confirm("Tem certeza que deseja excluir este registro?")) {
+        const senha = prompt("Digite a senha para confirmar a exclusão:");
+
+        if (senha !== "LaR2025") {
+            alert("Senha incorreta. A exclusão foi cancelada.");
+            return; // Interrompe a execução se a senha estiver errada
+        }
+
+        try {
+            await db.collection("registros").doc(id).delete();
+            mostrarAlerta('success', 'Registro excluído com sucesso!');
+            await carregarRegistros(); // Recarrega os cards atualizados
+        } catch (error) {
+            console.error("Erro ao excluir registro:", error);
+            mostrarAlerta('error', 'Erro ao excluir registro: ' + error.message);
+        }
+    }
+}
+
+
+    
+async function carregarGraficos() {
+    try {
+        let query = db.collection("registros");
+
+        const dataInicioInput = document.getElementById('grafico-data-inicio');
+        const dataFimInput = document.getElementById('grafico-data-fim');
+        const local = document.getElementById('grafico-local').value;
+        const tipo = document.getElementById('grafico-mercado')?.value || "";
+
+        const hoje = new Date();
+        const hojeFormatado = hoje.toISOString().split('T')[0];
+
+        if (!dataInicioInput.value || !dataFimInput.value) {
+            dataInicioInput.value = hojeFormatado;
+            dataFimInput.value = hojeFormatado;
+        }
+
+        const dataInicio = new Date(dataInicioInput.value + 'T00:00:00');
+        const dataFim = new Date(dataFimInput.value + 'T23:59:59');
+
+        query = query.orderBy("data", "desc")
+                     .where("data", ">=", dataInicio)
+                     .where("data", "<=", dataFim);
+
+        if (local) query = query.where("local", "==", local);
+        if (tipo) query = query.where("tipo", "==", tipo);
+
+        const querySnapshot = await query.get();
+
+        const dados = [];
+        querySnapshot.forEach(doc => {
+            const data = doc.data();
+            if (data.temperaturas) {
+                dados.push({
+                    ...data,
+                    data: data.data?.toDate() || new Date()
+                });
+            }
+        });
+
+        dados.sort((a, b) => a.data - b.data);
+
+        renderizarGraficoPorProduto(dados);
+        renderizarGraficoMedias(dados);
+        renderizarGraficoVariacao(dados);
+
+    } catch (error) {
+        console.error("Erro ao carregar gráficos:", error);
+        mostrarAlerta('error', 'Erro ao carregar gráficos: ' + error.message);
+    }
+}
+ 
+
+function renderizarGraficoMedias(dados) {
+    const ctx = document.getElementById('graficoMedias').getContext('2d');
+
+    const locais = {};
+    dados.forEach(reg => {
+        if (!locais[reg.local]) {
+            locais[reg.local] = { inicio: [], meio: [], fim: [] };
+        }
+
+        if (reg.temperaturas) {
+            locais[reg.local].inicio.push(reg.temperaturas.inicio);
+            locais[reg.local].meio.push(reg.temperaturas.meio);
+            locais[reg.local].fim.push(reg.temperaturas.fim);
+        }
+    });
+
+    const labels = Object.keys(locais);
+
+    const mediasInicio = labels.map(local => {
+        const valores = locais[local].inicio;
+        return valores.length ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+    });
+
+    const mediasMeio = labels.map(local => {
+        const valores = locais[local].meio;
+        return valores.length ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+    });
+
+    const mediasFim = labels.map(local => {
+        const valores = locais[local].fim;
+        return valores.length ? valores.reduce((a, b) => a + b, 0) / valores.length : 0;
+    });
+
+    if (window.graficoMedias?.destroy) {
+        window.graficoMedias.destroy();
+    }
+
+    window.graficoMedias = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Média Início', data: mediasInicio, backgroundColor: 'rgba(106, 13, 173, 0.7)' },
+                { label: 'Média Meio', data: mediasMeio, backgroundColor: 'rgba(156, 39, 176, 0.7)' },
+                { label: 'Média Fim', data: mediasFim, backgroundColor: 'rgba(76, 175, 80, 0.7)' }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Temperatura (°C)' }
+                }
+            }
+        }
+    });
+}
+
+function renderizarGraficoVariacao(dados) {
+    const ctx = document.getElementById('graficoVariacao').getContext('2d');
+
+    dados.sort((a, b) => a.data - b.data);
+
+    const labels = dados.map(reg => reg.data.toLocaleDateString('pt-BR'));
+    const valoresInicio = dados.map(reg => reg.temperaturas.inicio);
+    const valoresMeio = dados.map(reg => reg.temperaturas.meio);
+    const valoresFim = dados.map(reg => reg.temperaturas.fim);
+
+    if (window.graficoVariacao?.destroy) {
+        window.graficoVariacao.destroy();
+    }
+
+    window.graficoVariacao = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [
+                { label: 'Temperatura Início', data: valoresInicio, borderColor: 'rgba(106, 13, 173, 1)', fill: false },
+                { label: 'Temperatura Meio', data: valoresMeio, borderColor: 'rgba(156, 39, 176, 1)', fill: false },
+                { label: 'Temperatura Fim', data: valoresFim, borderColor: 'rgba(76, 175, 80, 1)', fill: false }
+            ]
+        },
+        options: {
+            responsive: true,
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    title: { display: true, text: 'Temperatura (°C)' }
+                }
+            }
+        }
+    });
+}
+
+
+
+function renderizarGraficoPorProduto(dados) {
+    const ctx = document.getElementById('graficoProdutos')?.getContext('2d');
+    if (!ctx) return;
+
+    const produtos = {};
+
+    dados.forEach(reg => {
+        const codigo = reg.codigo || 'Sem Código';
+        const nome = reg.produto || 'Desconhecido';
+        const key = `${codigo} - ${nome}`;
+
+        if (!produtos[key]) {
+            produtos[key] = { inicio: [], meio: [], fim: [], datas: [] };
+        }
+
+        if (reg.temperaturas) {
+            produtos[key].inicio.push(reg.temperaturas.inicio);
+            produtos[key].meio.push(reg.temperaturas.meio);
+            produtos[key].fim.push(reg.temperaturas.fim);
+            produtos[key].datas.push(reg.data);
+        }
+    });
+
+    const labels = Object.keys(produtos);
+    const medias = labels.map(key => {
+        const t = produtos[key];
+        const todas = [...t.inicio, ...t.meio, ...t.fim];
+        const soma = todas.reduce((a, b) => a + b, 0);
+        return todas.length ? parseFloat((soma / todas.length).toFixed(2)) : 0;
+    });
+
+    if (window.graficoProdutos?.destroy) {
+        window.graficoProdutos.destroy();
+    }
+
+    window.graficoProdutos = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Temperatura Média',
+                data: medias,
+                backgroundColor: 'rgba(106, 13, 173, 0.7)',
+                borderColor: 'rgba(106, 13, 173, 1)',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                tooltip: {
+                    enabled: true,
+                    callbacks: {
+                        label: function (context) {
+                            const key = labels[context.dataIndex];
+                            const produto = produtos[key];
+                            let info = `${key}\n${context.dataset.label}: ${context.formattedValue}°C\n`;
+
+                            if (produto?.datas?.length) {
+                                const datasFormatadas = produto.datas.map(d => {
+                                    const dt = new Date(d);
+                                    return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+                                }).join('\n');
+                                info += `Data/Hora:\n${datasFormatadas}`;
+                            }
+
+                            return info;
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Temperatura Média (°C)' }
+                },
+                x: {
+                    ticks: {
+                        autoSkip: false,
+                        maxRotation: 90,
+                        minRotation: 45,
+                        font: { size: 10 }
+                    }
+                }
+            }
+        },
+        plugins: [] // Sem valores nas barras
+    });
+}
+
+
+
+async function exportarGraficosPDF() {
+    try {
+        const canvasProdutos = document.getElementById('graficoProdutos');
+        const canvasMedias = document.getElementById('graficoMedias');
+        const canvasVariacao = document.getElementById('graficoVariacao');
+        
+        if (!canvasProdutos || !canvasMedias || !canvasVariacao) {
+            mostrarAlertaTemperatura('Gráficos não encontrados!', 'warning');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF('landscape');
+
+        doc.setFont('helvetica', 'normal');
+        
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text('Relatório de Gráficos de Temperatura', 145, 15, { align: 'center' });
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 145, 22, { align: 'center' });
+        
+        // Gráfico Produtos
+        const imgDataProdutos = canvasProdutos.toDataURL('image/png', 1.0);
+        doc.addImage(imgDataProdutos, 'PNG', 15, 30, 260, 120);
+        
+        // Nova página para gráfico Médias
+        doc.addPage('landscape');
+        const imgDataMedias = canvasMedias.toDataURL('image/png', 1.0);
+        doc.addImage(imgDataMedias, 'PNG', 15, 30, 260, 120);
+        
+        // Nova página para gráfico Variação
+        doc.addPage('landscape');
+        const imgDataVariacao = canvasVariacao.toDataURL('image/png', 1.0);
+        doc.addImage(imgDataVariacao, 'PNG', 15, 30, 260, 120);
+        
+        const dataAtual = new Date().toISOString().split('T')[0];
+        doc.save(`graficos_temperatura_${dataAtual}.pdf`);
+        
+        mostrarAlertaTemperatura('Exportação de gráficos para PDF concluída!', 'success');
+
+    } catch (error) {
+        console.error("Erro ao exportar gráficos para PDF:", error);
+        mostrarAlertaTemperatura('Erro ao exportar gráficos para PDF: ' + error.message, 'danger');
+    }
+}
+
+window.exportarGraficosPDF = exportarGraficosPDF;
+
+   
+// FUNÇÃO CORRIGIDA PARA EXPORTAR EXCEL
+async function exportarParaExcel() {
+    try {
+        // Garantir que temos os dados mais recentes
+        await carregarRegistros();
+        
+        if (registros.length === 0) {
+            mostrarAlertaTemperatura('Nenhum registro para exportar!', 'warning');
+            return;
+        }
+
+        // Preparar dados para exportação (CORREÇÃO AQUI - sem toDate())
+        const dados = registros.map(reg => ({
+            'Data': reg.data.toLocaleDateString('pt-BR'),
+            'Hora': reg.data.toLocaleTimeString('pt-BR'),
+            'Turno': reg.turno,
+            'Local': reg.local,
+            'Código': reg.codigo || 'N/A',
+            'Produto': reg.produto,
+            'Tipo': reg.tipo,
+            'Estado': reg.estado,
+            'Temp. Início (°C)': reg.temperaturas.inicio,
+            'Temp. Meio (°C)': reg.temperaturas.meio,
+            'Temp. Fim (°C)': reg.temperaturas.fim
+        }));
+
+        // Criar planilha Excel
+        const ws = XLSX.utils.json_to_sheet(dados);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Registros");
+        
+        // Exportar arquivo
+        const dataAtual = new Date().toISOString().split('T')[0];
+        XLSX.writeFile(wb, `registros_temperatura_${dataAtual}.xlsx`);
+        
+        mostrarAlertaTemperatura('Exportação para Excel concluída!', 'success');
+
+    } catch (error) {
+        console.error("Erro ao exportar Excel:", error);
+        mostrarAlertaTemperatura('Erro ao exportar para Excel: ' + error.message, 'danger');
+    }
+}
+
+// FUNÇÃO CORRIGIDA PARA EXPORTAR PDF
+async function exportarParaPDF() {
+    try {
+        await carregarRegistros();
+
+        if (registros.length === 0) {
+            mostrarAlertaTemperatura('Nenhum registro para exportar!', 'warning');
+            return;
+        }
+
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF({ orientation: 'landscape' }); // modo paisagem
+
+        // Cabeçalho
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(18);
+        doc.setTextColor(40);
+        doc.text('Relatório de Temperaturas', 148, 15, { align: 'center' });
+
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Emitido em: ${new Date().toLocaleString('pt-BR')}`, 148, 22, { align: 'center' });
+
+        // Cabeçalhos
+        const headers = [[
+            'Data', 'Hora', 'Turno', 'Local', 'Código', 'Produto', 'Tipo', 'Estado',
+            'Temp. Início', 'Temp. Meio', 'Temp. Fim'
+        ]];
+
+        // Dados
+        const data = registros.map(reg => [
+            reg.data?.toLocaleDateString('pt-BR') || '',
+            reg.data?.toLocaleTimeString('pt-BR') || '',
+            reg.turno || '',
+            reg.local || '',
+            reg.codigo || 'N/A',
+            reg.produto || '',
+            reg.tipo || '',
+            reg.estado || '',
+           reg.temperaturas?.inicio != null ? `${reg.temperaturas.inicio.toFixed(1).replace('.', ',')}°C` : '-',
+reg.temperaturas?.meio != null ? `${reg.temperaturas.meio.toFixed(1).replace('.', ',')}°C` : '-',
+reg.temperaturas?.fim != null ? `${reg.temperaturas.fim.toFixed(1).replace('.', ',')}°C` : '-',
+
+        ]);
+
+        // Tabela
+        doc.autoTable({
+            head: headers,
+            body: data,
+            startY: 30,
+            styles: {
+                fontSize: 8,
+                cellPadding: 3,
+                overflow: 'linebreak'
+            },
+            headStyles: {
+                fillColor: [106, 13, 173],
+                textColor: 255,
+                fontStyle: 'bold'
+            }
+        });
+
+        const dataAtual = new Date().toISOString().split('T')[0];
+        doc.save(`registros_temperatura_${dataAtual}.pdf`);
+        mostrarAlertaTemperatura('Exportação para PDF concluída!', 'success');
+
+    } catch (error) {
+        console.error("Erro ao exportar PDF:", error);
+        mostrarAlertaTemperatura('Erro ao exportar para PDF: ' + error.message, 'danger');
+    }
+}
+
+    async function executarLimpeza() {
+        try {
+            const diasManter = document.getElementById('limpeza-periodo').value;
+            if (!diasManter || isNaN(diasManter)) {
+                mostrarAlerta('error', 'Selecione um período válido!');
+                return;
+            }
+
+            const confirmacao = confirm(`Deseja realmente manter apenas os últimos ${diasManter} dias de registros? Esta ação é irreversível!`);
+            if (!confirmacao) return;
+
+            const dataLimite = new Date();
+            dataLimite.setDate(dataLimite.getDate() - parseInt(diasManter));
+            
+            // Limpa registros de temperatura
+            const snapshotRegistros = await db.collection("registros")
+                .where("data", "<", dataLimite)
+                .get();
+
+            const batchRegistros = db.batch();
+            snapshotRegistros.forEach(doc => {
+                batchRegistros.delete(doc.ref);
+            });
+            await batchRegistros.commit();
+
+            // Limpa dias arquivados
+            const snapshotDias = await db.collection("diasArquivados")
+                .where("data", "<", dataLimite.toISOString().split('T')[0])
+                .get();
+
+            const batchDias = db.batch();
+            snapshotDias.forEach(doc => {
+                batchDias.delete(doc.ref);
+            });
+            await batchDias.commit();
+
+            mostrarMensagemTemporaria('success', `Limpeza concluída! Foram mantidos apenas os últimos ${diasManter} dias de registros.`);
+            
+            // Recarrega os dados
+            carregarRegistros();
+            carregarGraficos();
+
+        } catch (error) {
+            mostrarAlerta('error', 'Erro ao executar limpeza: ' + error.message);
+        }
+    }
+
+    async function resetarCompleto() {
+        try {
+            const confirmacao1 = confirm('ATENÇÃO: Esta ação apagará TODOS os registros do sistema. Deseja continuar?');
+            if (!confirmacao1) return;
+            
+            const confirmacao2 = confirm('TEM CERTEZA ABSOLUTA? Esta ação NÃO PODE SER DESFEITA!');
+            if (!confirmacao2) return;
+
+            // Limpa todos os registros
+            const snapshotRegistros = await db.collection("registros").get();
+            const batchRegistros = db.batch();
+            snapshotRegistros.forEach(doc => {
+                batchRegistros.delete(doc.ref);
+            });
+            await batchRegistros.commit();
+
+            // Limpa todos os dias arquivados
+            const snapshotDias = await db.collection("diasArquivados").get();
+            const batchDias = db.batch();
+            snapshotDias.forEach(doc => {
+                batchDias.delete(doc.ref);
+            });
+            await batchDias.commit();
+
+            mostrarMensagemTemporaria('success', 'Reset completo realizado! Todos os dados foram apagados.');
+            
+            // Recarrega as telas
+            carregarRegistros();
+            carregarGraficos();
+
+        } catch (error) {
+            mostrarAlerta('error', 'Erro ao resetar dados: ' + error.message);
+        }
+    }
+
+    function carregarDadosIniciais() {
+        // Configurar datas padrão para mostrar apenas o dia atual
+        const hoje = new Date();
+        
+        // Ajustar para o fuso horário local
+        const offset = hoje.getTimezoneOffset() * 60000;
+        const hojeLocal = new Date(hoje.getTime() - offset);
+        const hojeFormatado = hojeLocal.toISOString().split('T')[0];
+        
+        // Aplicar aos filtros
+        document.getElementById('filtro-data-inicio').value = hojeFormatado;
+        document.getElementById('filtro-data-fim').value = hojeFormatado;
+        document.getElementById('grafico-data-inicio').value = hojeFormatado;
+        document.getElementById('grafico-data-fim').value = hojeFormatado;
+        
+        // Carregar dados do dia atual
+        carregarRegistros();
+    }
+
+
+
+</script>
+
+</body>
+</html>
