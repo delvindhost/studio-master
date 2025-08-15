@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
@@ -26,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Loader2, Filter, FileDown, FileText, MapPin, Barcode, Clock, Thermometer, Snowflake, Tag, Play, Pause, StopCircle, Trash2, ChevronsUpDown, Check, ChevronDown, LayoutGrid, Rows3 } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 import { useAuth } from '@/context/AuthContext';
 import { produtosPorCodigo } from '@/lib/produtos';
@@ -58,7 +57,6 @@ type Registro = {
   userId: string;
 };
 
-type jsPDFWithAutoTable = jsPDF & { autoTable: (options: any) => void };
 
 // Componente principal da página
 export default function VisualizarPage() {
@@ -200,9 +198,9 @@ export default function VisualizarPage() {
         alert("Não há dados para exportar.");
         return;
     }
-    const doc = new jsPDF({ orientation: 'landscape' }) as jsPDFWithAutoTable;
+    const doc = new jsPDF({ orientation: 'landscape' });
     doc.text("Relatório de Temperaturas", 14, 16);
-    doc.autoTable({
+    autoTable(doc, {
         head: [['Data', 'Hora', 'Turno', 'Local', 'Produto', 'Tipo', 'Estado', 'T. Início', 'T. Meio', 'T. Fim']],
         body: registros.map(reg => [
             reg.dataManual,
@@ -212,9 +210,9 @@ export default function VisualizarPage() {
             reg.produto,
             reg.tipo,
             reg.estado,
-            reg.temperaturas.inicio.toFixed(1),
-            reg.temperaturas.meio.toFixed(1),
-            reg.temperaturas.fim.toFixed(1),
+            reg.temperaturas.inicio.toFixed(1).replace('.',','),
+            reg.temperaturas.meio.toFixed(1).replace('.',','),
+            reg.temperaturas.fim.toFixed(1).replace('.',','),
         ]),
         startY: 20,
         headStyles: {
@@ -238,9 +236,9 @@ export default function VisualizarPage() {
         'Produto': reg.produto,
         'Tipo': reg.tipo,
         'Estado': reg.estado,
-        'Temp. Início (°C)': reg.temperaturas.inicio.toFixed(1),
-        'Temp. Meio (°C)': reg.temperaturas.meio.toFixed(1),
-        'Temp. Fim (°C)': reg.temperaturas.fim.toFixed(1),
+        'Temp. Início (°C)': reg.temperaturas.inicio.toFixed(1).replace('.',','),
+        'Temp. Meio (°C)': reg.temperaturas.meio.toFixed(1).replace('.',','),
+        'Temp. Fim (°C)': reg.temperaturas.fim.toFixed(1).replace('.',','),
       }));
 
       const ws = XLSX.utils.json_to_sheet(dadosParaExportar);
@@ -574,9 +572,9 @@ export default function VisualizarPage() {
                                     <TableCell>{reg.turno}</TableCell>
                                     <TableCell>{reg.tipo}</TableCell>
                                     <TableCell>{reg.estado}</TableCell>
-                                    <TableCell className="text-right">{reg.temperaturas.inicio.toFixed(1)}</TableCell>
-                                    <TableCell className="text-right">{reg.temperaturas.meio.toFixed(1)}</TableCell>
-                                    <TableCell className="text-right">{reg.temperaturas.fim.toFixed(1)}</TableCell>
+                                    <TableCell className="text-right">{reg.temperaturas.inicio.toFixed(1).replace('.',',')}</TableCell>
+                                    <TableCell className="text-right">{reg.temperaturas.meio.toFixed(1).replace('.',',')}</TableCell>
+                                    <TableCell className="text-right">{reg.temperaturas.fim.toFixed(1).replace('.',',')}</TableCell>
                                     {canDeleteRecords && (
                                       <TableCell className="text-center">
                                           <AlertDialog>
@@ -617,3 +615,5 @@ export default function VisualizarPage() {
     </div>
   );
 }
+
+

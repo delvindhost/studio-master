@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -97,7 +96,7 @@ export default function UsuariosPage() {
             userList.push({ id: doc.id, ...doc.data() } as UserProfile);
         }
       });
-      setUsers(userList);
+      setUsers(userList.sort((a, b) => a.nome.localeCompare(b.nome)));
     } catch (err) {
       console.error(err);
       setError('Falha ao carregar usuários.');
@@ -485,3 +484,4 @@ export default function UsuariosPage() {
 }
 
     
+

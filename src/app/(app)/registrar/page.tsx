@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
-import { addDoc, collection } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { addDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,7 +16,7 @@ import {
   SelectGroup,
   SelectLabel,
 } from '@/components/ui/select';
-import { Loader2, Save, Trash2 } from 'lucide-react';
+import { Loader2, Save, Trash2, User } from 'lucide-react';
 import { produtosPorCodigo } from '@/lib/produtos';
 import { useAuth } from '@/context/AuthContext';
 
@@ -39,8 +39,13 @@ type RegistroTemperatura = {
   userId: string;
 };
 
+type UserProfile = {
+  id: string;
+  nome: string;
+};
+
 export default function RegistrarPage() {
-  const { user } = useAuth();
+  const { user, userProfile } = useAuth();
   const [turno, setTurno] = useState('');
   const [local, setLocal] = useState('');
   const [codigo, setCodigo] = useState('');
@@ -52,10 +57,37 @@ export default function RegistrarPage() {
   const [tempInicio, setTempInicio] = useState('');
   const [tempMeio, setTempMeio] = useState('');
   const [tempFim, setTempFim] = useState('');
-
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // States for admin functionality
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+
+  // Fetch users if the current user is an admin
+  useEffect(() => {
+    const fetchUsers = async () => {
+      if (userProfile?.role === 'admin') {
+        setLoading(true);
+        try {
+          const usersQuery = query(collection(db, 'users'), where('role', '==', 'user'));
+          const querySnapshot = await getDocs(usersQuery);
+          const userList: UserProfile[] = [];
+          querySnapshot.forEach((doc) => {
+            userList.push({ id: doc.id, nome: doc.data().nome } as UserProfile);
+          });
+          setUsers(userList.sort((a, b) => a.nome.localeCompare(b.nome)));
+        } catch (err) {
+          setError("Falha ao carregar a lista de usuários.");
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+    fetchUsers();
+  }, [userProfile]);
 
   const showAlert = (message: string, type: 'success' | 'error') => {
     if (type === 'success') {
@@ -93,6 +125,7 @@ export default function RegistrarPage() {
     setTempInicio('');
     setTempMeio('');
     setTempFim('');
+    setSelectedUserId(''); // Reset user selection for admin
   };
 
   const registrarTemperatura = async () => {
@@ -104,6 +137,13 @@ export default function RegistrarPage() {
       showAlert('Usuário não autenticado. Faça login novamente.', 'error');
       setLoading(false);
       return;
+    }
+    
+    // Admin must select a user
+    if (userProfile?.role === 'admin' && !selectedUserId) {
+        showAlert('Por favor, selecione em nome de qual usuário você está registrando.', 'error');
+        setLoading(false);
+        return;
     }
 
     const camposObrigatorios = {
@@ -131,6 +171,7 @@ export default function RegistrarPage() {
 
         const dataComHorario = new Date(ano, mes - 1, dia, hora, minuto);
 
+      const userIdToSave = userProfile?.role === 'admin' ? selectedUserId : user.uid;
 
       const novoRegistro: Omit<RegistroTemperatura, 'data'> & { data: Date } = {
         turno,
@@ -147,7 +188,7 @@ export default function RegistrarPage() {
           fim: parseFloat(tempFim),
         },
         data: dataComHorario,
-        userId: user.uid,
+        userId: userIdToSave,
       };
 
       await addDoc(collection(db, 'registros'), novoRegistro);
@@ -181,6 +222,34 @@ export default function RegistrarPage() {
             }}
             className="space-y-6"
           >
+            {userProfile?.role === 'admin' && (
+              <div className="p-4 bg-accent/10 border border-accent/30 rounded-md space-y-2">
+                <Label htmlFor="select-user" className="font-bold flex items-center gap-2 text-primary">
+                    <User className="h-4 w-4" />
+                    Registrar em nome de *
+                </Label>
+                <Select value={selectedUserId} onValueChange={setSelectedUserId} required disabled={loading}>
+                  <SelectTrigger id="select-user">
+                    <SelectValue placeholder="Selecione um colaborador" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {users.length > 0 ? (
+                      users.map(u => (
+                        <SelectItem key={u.id} value={u.id}>
+                          {u.nome}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="loading" disabled>
+                        Carregando usuários...
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
+                 <p className="text-xs text-muted-foreground">Como administrador, você deve selecionar o colaborador que realizou a medição.</p>
+              </div>
+            )}
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                     <Label htmlFor="turno">Turno *</Label>
@@ -191,6 +260,7 @@ export default function RegistrarPage() {
                         <SelectContent>
                             <SelectItem value="1">1º Turno</SelectItem>
                             <SelectItem value="2">2º Turno</SelectItem>
+                            <SelectItem value="3">3º Turno</SelectItem>
                         </SelectContent>
                     </Select>
                 </div>

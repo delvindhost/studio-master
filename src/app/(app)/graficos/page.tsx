@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
@@ -471,7 +472,7 @@ export default function GraficosPage() {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
                               <YAxis />
-                              <Tooltip />
+                              <Tooltip formatter={(value: number) => `${value.toFixed(2).replace('.', ',')}°C`} />
                               <Legend />
                               <Bar dataKey="Temperatura Média" fill="hsl(var(--primary))" />
                           </BarChart>
@@ -490,7 +491,7 @@ export default function GraficosPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" />
                             <YAxis />
-                            <Tooltip />
+                            <Tooltip formatter={(value: number) => `${value.toFixed(2).replace('.', ',')}°C`} />
                             <Legend />
                             <Bar dataKey="Início" fill="#4B0082" />
                             <Bar dataKey="Meio" fill="#DC2626" />
@@ -510,7 +511,7 @@ export default function GraficosPage() {
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="name" angle={-20} textAnchor="end" height={60} interval={'preserveStartEnd'}/>
                             <YAxis />
-                            <Tooltip />
+                            <Tooltip formatter={(value: number) => `${value.toFixed(1).replace('.', ',')}°C`} />
                             <Legend />
                             <Line type="monotone" dataKey="Início" stroke="#4B0082" activeDot={{ r: 8 }} />
                             <Line type="monotone" dataKey="Meio" stroke="#DC2626" />

@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Progress } from '@/components/ui/progress';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
-import { Loader2, Calendar, TrendingUp, TrendingDown, Thermometer, Box, Users, GitCompareArrows } from 'lucide-react';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend, CartesianGrid } from 'recharts';
+import { Loader2, TrendingUp, TrendingDown, Thermometer, Box, Users, GitCompareArrows, AlertTriangle, User, MapPin } from 'lucide-react';
 
 // Tipos
 type Registro = {
@@ -51,6 +50,19 @@ type UserActivity = {
     entries: number;
 };
 
+type DailyEntry = {
+    date: string;
+    'Lançamentos': number;
+}
+
+type TemperatureAlert = {
+    id: string;
+    produto: string;
+    local: string;
+    temperaturas: { inicio: number; meio: number; fim: number };
+    userName: string;
+};
+
 const COLORS = ['#4B0082', '#8A2BE2', '#9370DB', '#BA55D3', '#C71585', '#DB7093'];
 
 export default function DashboardPage() {
@@ -58,9 +70,10 @@ export default function DashboardPage() {
   const [data, setData] = useState<Registro[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [userActivity, setUserActivity] = useState<UserActivity[]>([]);
+  const [temperatureAlerts, setTemperatureAlerts] = useState<TemperatureAlert[]>([]);
   
   const today = new Date();
-  const [startDate, setStartDate] = useState(new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split('T')[0]);
+  const [startDate, setStartDate] = useState(today.toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(today.toISOString().split('T')[0]);
   
   const fetchData = async () => {
@@ -112,22 +125,34 @@ export default function DashboardPage() {
                 entries: data.filter(d => d.userId === user.id).length
             }));
        
-        if (activityData.every(u => u.entries === 0) && activityData.length > 0) {
-           const fakeActivity = users
-             .filter(u => u.role === 'user')
-             .map((user, index) => ({
-                name: user.nome,
-                entries: (index * 15 + 25) % 60 + 5 
-             }));
-           setUserActivity(fakeActivity);
-        } else {
-            setUserActivity(activityData);
-        }
+        setUserActivity(activityData);
+
+        // Processar Alertas de Temperatura
+        const alerts: TemperatureAlert[] = [];
+        data.forEach(reg => {
+            if (reg.tipo === 'ME' && reg.estado === 'Congelado') {
+                const { inicio, meio, fim } = reg.temperaturas;
+                if (inicio > -18 || meio > -18 || fim > -18) {
+                    const user = users.find(u => u.id === reg.userId);
+                    alerts.push({
+                        id: reg.id,
+                        produto: reg.produto,
+                        local: reg.local,
+                        temperaturas: reg.temperaturas,
+                        userName: user ? user.nome : 'Usuário desconhecido'
+                    });
+                }
+            }
+        });
+        setTemperatureAlerts(alerts);
+    } else {
+        setUserActivity([]);
+        setTemperatureAlerts([]);
     }
   }, [data, users]);
 
 
-  const dashboardData = useMemo(() => {
+  const { dashboardData, dailyEntriesData } = useMemo(() => {
     const totalRegistros = data.length;
     const setoresAferidos = new Set(data.map(d => d.local)).size;
 
@@ -147,12 +172,13 @@ export default function DashboardPage() {
     const avgME = marketAvg.me.count > 0 ? (marketAvg.me.total / marketAvg.me.count) : 0;
     
     const productTemps = data.reduce((acc, curr) => {
+      const key = curr.produto || 'N/A';
       const avgTemp = (curr.temperaturas.inicio + curr.temperaturas.meio + curr.temperaturas.fim) / 3;
-      if (!acc[curr.produto]) {
-        acc[curr.produto] = { total: 0, count: 0 };
+      if (!acc[key]) {
+        acc[key] = { total: 0, count: 0 };
       }
-      acc[curr.produto].total += avgTemp;
-      acc[curr.produto].count++;
+      acc[key].total += avgTemp;
+      acc[key].count++;
       return acc;
     }, {} as Record<string, { total: number; count: number }>);
     
@@ -163,8 +189,25 @@ export default function DashboardPage() {
     
     const top5Highest = [...productAverages].sort((a, b) => b.avgTemp - a.avgTemp).slice(0, 5);
     const top5Lowest = [...productAverages].sort((a, b) => a.avgTemp - b.avgTemp).slice(0, 5);
+    
+    const dailyCounts = data.reduce((acc, curr) => {
+        const date = curr.data.toDate().toLocaleDateString('pt-BR');
+        if(!acc[date]) {
+            acc[date] = 0;
+        }
+        acc[date]++;
+        return acc;
+    }, {} as Record<string, number>);
 
-    return { totalRegistros, setoresAferidos, avgMI, avgME, top5Highest, top5Lowest };
+    const dailyEntries: DailyEntry[] = Object.entries(dailyCounts)
+        .map(([date, count]) => ({ date, 'Lançamentos': count }))
+        .sort((a,b) => new Date(a.date.split('/').reverse().join('-')).getTime() - new Date(b.date.split('/').reverse().join('-')).getTime());
+
+
+    return { 
+        dashboardData: { totalRegistros, setoresAferidos, avgMI, avgME, top5Highest, top5Lowest },
+        dailyEntriesData: dailyEntries,
+    };
   }, [data]);
   
   if (loading) {
@@ -187,6 +230,41 @@ export default function DashboardPage() {
         </div>
       </div>
       
+       {/* Alertas de Temperatura Crítica */}
+      {temperatureAlerts.length > 0 && (
+        <Card className="border-destructive bg-destructive/10">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle /> Alerta de Temperatura Crítica
+            </CardTitle>
+            <CardDescription className="text-destructive/80">
+              Os seguintes produtos congelados (ME) estão com temperatura acima do limite de -18°C. Ação imediata necessária.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {temperatureAlerts.map(alert => (
+                <div key={alert.id} className="p-3 rounded-md border border-destructive/30 bg-background/50">
+                  <p className="font-bold text-primary">{alert.produto}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 text-sm mt-1">
+                      <p className="flex items-center gap-2"><MapPin className="h-4 w-4 text-muted-foreground"/> <strong>Local:</strong> {alert.local}</p>
+                      <p className="flex items-center gap-2"><User className="h-4 w-4 text-muted-foreground"/> <strong>Usuário:</strong> {alert.userName}</p>
+                  </div>
+                  <div className="mt-2 text-sm">
+                      <p><strong>Temperaturas Medidas (Ideal: ≤ -18,0°C):</strong></p>
+                      <div className="flex gap-4">
+                          <span className={alert.temperaturas.inicio > -18 ? 'text-destructive font-bold' : ''}>Início: {alert.temperaturas.inicio.toFixed(1).replace('.',',')}°C</span>
+                          <span className={alert.temperaturas.meio > -18 ? 'text-destructive font-bold' : ''}>Meio: {alert.temperaturas.meio.toFixed(1).replace('.',',')}°C</span>
+                          <span className={alert.temperaturas.fim > -18 ? 'text-destructive font-bold' : ''}>Fim: {alert.temperaturas.fim.toFixed(1).replace('.',',')}°C</span>
+                      </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Cards de Métricas */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
           <Card>
@@ -215,7 +293,7 @@ export default function DashboardPage() {
                   <Thermometer className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{dashboardData.avgMI.toFixed(2)}°C</div>
+                  <div className="text-2xl font-bold">{dashboardData.avgMI.toFixed(2).replace('.',',')}°C</div>
                    <p className="text-xs text-muted-foreground">Mercado Interno</p>
               </CardContent>
           </Card>
@@ -225,7 +303,7 @@ export default function DashboardPage() {
                   <Thermometer className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                  <div className="text-2xl font-bold">{dashboardData.avgME.toFixed(2)}°C</div>
+                  <div className="text-2xl font-bold">{dashboardData.avgME.toFixed(2).replace('.',',')}°C</div>
                   <p className="text-xs text-muted-foreground">Mercado Externo</p>
               </CardContent>
           </Card>
@@ -238,22 +316,24 @@ export default function DashboardPage() {
                    <CardDescription>Produtos com as temperaturas médias mais altas.</CardDescription>
                </CardHeader>
                <CardContent>
-                   <Table>
-                       <TableHeader>
-                           <TableRow>
-                               <TableHead>Produto</TableHead>
-                               <TableHead className="text-right">Temp. Média</TableHead>
-                           </TableRow>
-                       </TableHeader>
-                       <TableBody>
-                           {dashboardData.top5Highest.map(p => (
-                               <TableRow key={p.name}>
-                                   <TableCell className="font-medium">{p.name}</TableCell>
-                                   <TableCell className="text-right">{p.avgTemp.toFixed(2)}°C</TableCell>
+                   {dashboardData.top5Highest.length > 0 ? (
+                       <Table>
+                           <TableHeader>
+                               <TableRow>
+                                   <TableHead>Produto</TableHead>
+                                   <TableHead className="text-right">Temp. Média</TableHead>
                                </TableRow>
-                           ))}
-                       </TableBody>
-                   </Table>
+                           </TableHeader>
+                           <TableBody>
+                               {dashboardData.top5Highest.map(p => (
+                                   <TableRow key={p.name}>
+                                       <TableCell className="font-medium">{p.name}</TableCell>
+                                       <TableCell className="text-right">{p.avgTemp.toFixed(2).replace('.',',')}°C</TableCell>
+                                   </TableRow>
+                               ))}
+                           </TableBody>
+                       </Table>
+                   ) : <p className="text-sm text-muted-foreground text-center py-4">Sem dados para exibir.</p>}
                </CardContent>
            </Card>
            <Card>
@@ -262,22 +342,24 @@ export default function DashboardPage() {
                    <CardDescription>Produtos com as temperaturas médias mais baixas.</CardDescription>
                </CardHeader>
                <CardContent>
-                   <Table>
-                       <TableHeader>
-                           <TableRow>
-                               <TableHead>Produto</TableHead>
-                               <TableHead className="text-right">Temp. Média</TableHead>
-                           </TableRow>
-                       </TableHeader>
-                       <TableBody>
-                            {dashboardData.top5Lowest.map(p => (
-                               <TableRow key={p.name}>
-                                   <TableCell className="font-medium">{p.name}</TableCell>
-                                   <TableCell className="text-right">{p.avgTemp.toFixed(2)}°C</TableCell>
+                   {dashboardData.top5Lowest.length > 0 ? (
+                       <Table>
+                           <TableHeader>
+                               <TableRow>
+                                   <TableHead>Produto</TableHead>
+                                   <TableHead className="text-right">Temp. Média</TableHead>
                                </TableRow>
-                           ))}
-                       </TableBody>
-                   </Table>
+                           </TableHeader>
+                           <TableBody>
+                                {dashboardData.top5Lowest.map(p => (
+                                   <TableRow key={p.name}>
+                                       <TableCell className="font-medium">{p.name}</TableCell>
+                                       <TableCell className="text-right">{p.avgTemp.toFixed(2).replace('.',',')}°C</TableCell>
+                                   </TableRow>
+                               ))}
+                           </TableBody>
+                       </Table>
+                    ) : <p className="text-sm text-muted-foreground text-center py-4">Sem dados para exibir.</p>}
                </CardContent>
            </Card>
        </div>
@@ -289,50 +371,49 @@ export default function DashboardPage() {
                 <CardDescription>Total de lançamentos por usuário no período.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                   <PieChart>
-                      <Pie
-                        data={userActivity}
-                        dataKey="entries"
-                        nameKey="name"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={100}
-                        fill="#8884d8"
-                        label={(entry) => `${entry.name} (${entry.entries})`}
-                      >
-                        {userActivity.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                      <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
+                {userActivity.length > 0 && userActivity.some(u => u.entries > 0) ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                       <PieChart>
+                          <Pie
+                            data={userActivity.filter(u => u.entries > 0)}
+                            dataKey="entries"
+                            nameKey="name"
+                            cx="50%"
+                            cy="50%"
+                            outerRadius={100}
+                            fill="#8884d8"
+                            label={(entry) => `${entry.name} (${entry.entries})`}
+                          >
+                            {userActivity.map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <Tooltip />
+                          <Legend />
+                        </PieChart>
+                    </ResponsiveContainer>
+                ) : <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">Nenhuma atividade de usuário registrada no período.</p></div>}
             </CardContent>
           </Card>
 
           <Card>
              <CardHeader>
                 <CardTitle>Lançamentos Diários</CardTitle>
-                 <CardDescription>Comparativo de registros (dados fictícios)</CardDescription>
+                 <CardDescription>Total de registros por dia no período.</CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-                <div>
-                    <Label>Hoje ({new Date().toLocaleDateString('pt-BR')})</Label>
-                    <Progress value={85} className="w-full" />
-                    <p className="text-sm text-muted-foreground text-right">85 registros</p>
-                </div>
-                 <div>
-                    <Label>Ontem</Label>
-                    <Progress value={70} className="w-full" />
-                     <p className="text-sm text-muted-foreground text-right">70 registros</p>
-                </div>
-                 <div>
-                    <Label>Anteontem</Label>
-                    <Progress value={90} className="w-full" />
-                     <p className="text-sm text-muted-foreground text-right">90 registros</p>
-                </div>
+            <CardContent className="h-[300px]">
+                {dailyEntriesData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={dailyEntriesData}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="date" />
+                            <YAxis />
+                            <Tooltip />
+                            <Legend />
+                            <Bar dataKey="Lançamentos" fill="#8A2BE2" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                ) : <div className="flex items-center justify-center h-full"><p className="text-muted-foreground">Nenhum lançamento no período.</p></div>}
             </CardContent>
           </Card>
        </div>
@@ -340,3 +421,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+

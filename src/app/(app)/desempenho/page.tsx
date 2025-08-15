@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
@@ -15,6 +14,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useRouter } from 'next/navigation';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Progress } from '@/components/ui/progress';
 
 // Tipos
 type Registro = {
@@ -55,9 +55,9 @@ export default function DesempenhoPage() {
   const [usuarios, setUsuarios] = useState<UserProfile[]>([]);
 
   const hoje = new Date();
-  const primeiroDiaDoMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1).toISOString().split('T')[0];
-  const [dataInicio, setDataInicio] = useState(primeiroDiaDoMes);
-  const [dataFim, setDataFim] = useState(hoje.toISOString().split('T')[0]);
+  const hojeString = hoje.toISOString().split('T')[0];
+  const [dataInicio, setDataInicio] = useState(hojeString);
+  const [dataFim, setDataFim] = useState(hojeString);
   
   const relatorioRef = useRef<HTMLDivElement>(null);
 
@@ -149,7 +149,7 @@ export default function DesempenhoPage() {
         name: nomeTurno,
         'Total de Registros': registrosDoTurno,
         'Usuários Ativos': usuariosAtivos,
-        'Média por Usuário': parseFloat(mediaPorUsuario.toFixed(2)),
+        'Média por Usuário': mediaPorUsuario,
       };
     });
 
@@ -175,7 +175,6 @@ export default function DesempenhoPage() {
     const doc = new jsPDF('p', 'mm', 'a4');
     const content = relatorioRef.current;
     
-    // Adicionar um fundo branco temporário para a captura
     content.style.backgroundColor = 'white';
 
     try {
@@ -185,7 +184,6 @@ export default function DesempenhoPage() {
             backgroundColor: '#ffffff'
         });
 
-        // Remover o fundo branco após a captura
         content.style.backgroundColor = '';
 
         const imgData = canvas.toDataURL('image/png');
@@ -215,10 +213,17 @@ export default function DesempenhoPage() {
         setError("Ocorreu um erro ao gerar o PDF do relatório.");
     } finally {
         setLoading(false);
-        // Garante a remoção do fundo em caso de erro também
         content.style.backgroundColor = '';
     }
   };
+
+  const dadosTurnoAtividade = useMemo(() => {
+    const maxAtivos = Math.max(...desempenhoData.porTurno.map(t => t['Usuários Ativos']), 0);
+    return desempenhoData.porTurno.map(t => ({
+      ...t,
+      percentual: maxAtivos > 0 ? (t['Usuários Ativos'] / maxAtivos) * 100 : 0
+    })).sort((a,b) => b['Usuários Ativos'] - a['Usuários Ativos']);
+  }, [desempenhoData.porTurno]);
 
 
   if (authLoading || (!userProfile && !error)) {
@@ -262,7 +267,6 @@ export default function DesempenhoPage() {
           <p className="text-center text-red-500 py-8">{error}</p>
       ) : (
         <div ref={relatorioRef} className="space-y-6 bg-background p-4 rounded-lg">
-            {/* Cards de KPIs */}
             <div className="grid gap-6 md:grid-cols-3">
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -296,7 +300,6 @@ export default function DesempenhoPage() {
                 </Card>
             </div>
             
-            {/* Gráficos e Tabelas */}
             <div className="grid gap-6 lg:grid-cols-5">
                 <Card className="lg:col-span-3">
                    <CardHeader>
@@ -309,7 +312,7 @@ export default function DesempenhoPage() {
                               <CartesianGrid strokeDasharray="3 3" />
                               <XAxis dataKey="name" />
                               <YAxis />
-                              <Tooltip />
+                              <Tooltip formatter={(value: number) => typeof value === 'number' ? value.toFixed(2).replace('.', ',') : value} />
                               <Legend />
                               <Bar dataKey="Total de Registros" fill="#4B0082" />
                               <Bar dataKey="Média por Usuário" fill="#8A2BE2" />
@@ -345,6 +348,28 @@ export default function DesempenhoPage() {
                    </CardContent>
                 </Card>
             </div>
+
+            <Card>
+                <CardHeader>
+                    <CardTitle>Usuários Ativos por Turno</CardTitle>
+                    <CardDescription>Comparativo do número de colaboradores ativos em cada turno.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    {dadosTurnoAtividade.length > 0 ? (
+                        dadosTurnoAtividade.map(turno => (
+                            <div key={turno.name} className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                    <span className="font-medium">{turno.name}</span>
+                                    <span className="text-muted-foreground">{turno['Usuários Ativos']} usuário(s) ativo(s)</span>
+                                </div>
+                                <Progress value={turno.percentual} />
+                            </div>
+                        ))
+                    ) : (
+                        <p className="text-sm text-muted-foreground text-center">Não há dados de atividade para exibir.</p>
+                    )}
+                </CardContent>
+            </Card>
         </div>
       )}
     </div>
